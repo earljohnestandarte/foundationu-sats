@@ -3,95 +3,134 @@
 <?php /** @var object[] $replies */ ?>
 <?php $this->section('title') ?>Ticket #<?= esc((string) $ticket->id) ?><?php $this->endSection() ?>
 <?php $this->section('content') ?>
-<?php
-$statusClasses = [
-    'Open' => 'bg-success',
-    'In Progress' => 'bg-warning text-dark',
-    'Waiting on Student' => 'bg-info text-dark',
-    'Resolved' => 'bg-secondary',
-    'Closed' => 'bg-dark',
-];
-$priorityClasses = [
-    'Low' => 'bg-info text-dark',
-    'Medium' => 'bg-warning text-dark',
-    'High' => 'bg-danger',
-];
-$statusClass = $statusClasses[$ticket->status] ?? 'bg-primary';
-$priorityClass = $priorityClasses[$ticket->priority] ?? 'bg-secondary text-light';
-?>
-<div class="card mb-4">
-    <div class="card-header">
-        <h4 class="mb-0">Ticket #<?= esc((string) $ticket->id) ?>: <?= esc((string) $ticket->subject) ?></h4>
-    </div>
-    <div class="card-body">
-        <div class="row g-4">
-            <div class="col-md-6">
-                <p class="mb-2"><strong>Office:</strong> <?= esc((string) $ticket->office_name) ?></p>
-                <p class="mb-2"><strong>Created:</strong> <?= esc((string) $ticket->created_at) ?></p>
-            </div>
-            <div class="col-md-6">
-                <p class="mb-2"><strong>Status:</strong> <span class="badge rounded-pill <?= $statusClass ?>"><?= esc((string) $ticket->status) ?></span></p>
-                <p class="mb-0"><strong>Priority:</strong> <span class="badge rounded-pill <?= $priorityClass ?>"><?= esc((string) $ticket->priority) ?></span></p>
-            </div>
+<section class="section-padding">
+    <div class="mb-4">
+        <div class="d-flex align-items-center gap-2 mb-2">
+            <a href="<?= site_url('student/tickets') ?>" class="text-decoration-none" style="color: var(--fu-on-surface-variant);">
+                <i class="fas fa-arrow-left"></i> Back
+            </a>
         </div>
-        <hr />
-        <div class="mb-3">
-            <h5>Description</h5>
-            <p><?= nl2br(esc((string) $ticket->description)) ?></p>
-        </div>
+        <h3 class="fw-bold mb-0" style="color: var(--fu-primary); font-size: 24px;">Ticket #FAU-<?= str_pad(esc((string)$ticket->id), 4, '0', STR_PAD_LEFT) ?>: <?= esc((string) $ticket->subject) ?></h3>
     </div>
-</div>
 
-<div class="card">
-    <div class="card-header">
-        <h5 class="mb-0">Conversation Thread</h5>
-    </div>
-    <div class="card-body">
-        <?php if (empty($replies)): ?>
-            <div class="alert alert-secondary">No replies yet. Please wait for an agent response.</div>
-        <?php else: ?>
-            <?php function renderReplies(array $replies, int $depth = 0, $ticketId)
-            {
-                foreach ($replies as $reply): ?>
-                    <div class="reply-bubble<?= $depth ? ' ms-4' : '' ?> <?= $reply->user_id === session()->get('user_id') ? 'bg-light' : '' ?>">
-                        <div class="d-flex justify-content-between align-items-start mb-2">
-                            <strong><?= esc((string) $reply->author_name) ?></strong>
-                            <small class="text-muted"><?= esc((string) $reply->created_at) ?></small>
+    <div class="row g-4">
+        <div class="col-md-8">
+            <div class="card-fu mb-4">
+                <div class="p-4">
+                    <div class="mb-3">
+                        <h6 class="text-uppercase fw-semibold mb-3" style="color: var(--fu-on-surface-variant); font-size: 12px; letter-spacing: 0.05em;">Description</h6>
+                        <p style="line-height: 1.7;"><?= nl2br(esc((string) $ticket->description)) ?></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-fu">
+                <div class="d-flex justify-between items-center px-4 py-3" style="border-bottom: 1px solid var(--fu-outline-variant); background-color: var(--fu-surface-container-low);">
+                    <h6 class="fw-semibold mb-0" style="color: var(--fu-primary);">Conversation Thread</h6>
+                </div>
+                <div style="padding: 0;">
+                    <?php if (empty($replies)): ?>
+                        <div class="p-5 text-center">
+                            <i class="fas fa-comments fa-3x mb-3" style="color: var(--fu-on-surface-variant);"></i>
+                            <p class="mb-0" style="color: var(--fu-on-surface-variant);">No replies yet. Please wait for an agent response.</p>
                         </div>
-                        <p class="mb-3"><?= nl2br(esc((string) $reply->message)) ?></p>
-                        <button type="button" class="btn btn-sm btn-link text-decoration-none reply-toggle" data-target="reply-form-<?= $reply->id ?>">Reply</button>
-                        <div class="reply-form reply-form-<?= $reply->id ?>" style="display:none;">
-                            <?= form_open('student/tickets/' . $ticketId . '/reply') ?>
-                            <?= csrf_field() ?>
-                            <?= form_hidden('reply_to', $reply->id) ?>
-                            <div class="mb-2">
-                                <?= form_textarea('message', '', ['class' => 'form-control form-control-sm', 'rows' => 3, 'placeholder' => 'Write a reply...']) ?>
-                            </div>
-                            <button type="submit" class="btn btn-sm btn-primary">Post Reply</button>
-                            <?= form_close() ?>
-                        </div>
-                        <?php if (! empty($reply->children)): ?>
-                            <?php renderReplies($reply->children, $depth + 1, $ticketId); ?>
+                    <?php else: ?>
+                        <?php function renderReplies(array $replies, int $depth = 0, $ticketId)
+                        {
+                            foreach ($replies as $reply): ?>
+                                <div class="reply-bubble<?= $depth ? ' ms-4 border-start border-2 ps-4' : '' ?>" style="padding: 20px 24px; border-bottom: 1px solid var(--fu-outline-variant);">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 36px; height: 36px; background-color: var(--fu-surface-container-low);">
+                                                <i class="fas fa-user" style="color: var(--fu-on-surface-variant);"></i>
+                                            </div>
+                                            <div>
+                                                <strong class="d-block" style="color: var(--fu-on-surface);"><?= esc((string) $reply->author_name) ?></strong>
+                                                <small style="color: var(--fu-on-surface-variant);"><?= date('M j, Y g:i A', strtotime($reply->created_at)) ?></small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div style="line-height: 1.7;"><?= nl2br(esc((string) $reply->message)) ?></div>
+                                    <button type="button" class="btn btn-sm btn-link text-decoration-none reply-toggle mt-2" style="color: var(--fu-on-surface-variant);" data-target="reply-form-<?= $reply->id ?>">
+                                        <i class="fas fa-reply me-1"></i> Reply
+                                    </button>
+                                    <div class="reply-form reply-form-<?= $reply->id ?> mt-3" style="display:none;">
+                                        <?= form_open('student/tickets/' . $ticketId . '/reply') ?>
+                                        <?= csrf_field() ?>
+                                        <?= form_hidden('reply_to', $reply->id) ?>
+                                        <div class="mb-2">
+                                            <textarea name="message" class="form-control" rows="3" placeholder="Write a reply..." style="border-radius: 8px; border-color: var(--fu-outline-variant);"></textarea>
+                                        </div>
+                                        <button type="submit" class="btn btn-fu-primary btn-sm">Post Reply</button>
+                                        <?= form_close() ?>
+                                    </div>
+                                    <?php if (! empty($reply->children)): ?>
+                                        <?php renderReplies($reply->children, $depth + 1, $ticketId); ?>
+                                    <?php endif; ?>
+                                </div>
+                        <?php endforeach;
+                        }
+                        renderReplies($replies, 0, $ticket->id); ?>
+                    <?php endif ?>
+                </div>
+                <div class="p-4" style="border-top: 1px solid var(--fu-outline-variant);">
+                    <h6 class="fw-semibold mb-3" style="color: var(--fu-on-surface);">Add a new reply</h6>
+                    <?= form_open('student/tickets/' . $ticket->id . '/reply') ?>
+                    <?= csrf_field() ?>
+                    <div class="mb-3">
+                        <textarea name="message" class="form-control" rows="4" placeholder="Write your message..." style="border-radius: 8px; border-color: var(--fu-outline-variant);" required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-fu-primary d-flex align-items-center gap-2">
+                        <i class="fas fa-paper-plane"></i> Send Reply
+                    </button>
+                    <?= form_close() ?>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card-fu">
+                <div class="d-flex justify-between items-center px-4 py-3" style="border-bottom: 1px solid var(--fu-outline-variant); background-color: var(--fu-surface-container-low);">
+                    <h6 class="fw-semibold mb-0" style="color: var(--fu-primary);">Ticket Details</h6>
+                </div>
+                <div class="p-4">
+                    <div class="mb-3">
+                        <label class="text-uppercase small fw-semibold mb-1 d-block" style="color: var(--fu-on-surface-variant);">Status</label>
+                        <?php
+                        $statusBadgeClass = 'open';
+                        if ($ticket->status === 'In Progress') {
+                            $statusBadgeClass = 'in-progress';
+                        } elseif ($ticket->status === 'Resolved') {
+                            $statusBadgeClass = 'resolved';
+                        }
+                        ?>
+                        <span class="badge-fu <?= $statusBadgeClass ?>"><?= esc((string)$ticket->status) ?></span>
+                    </div>
+                    <div class="mb-3">
+                        <label class="text-uppercase small fw-semibold mb-1 d-block" style="color: var(--fu-on-surface-variant);">Priority</label>
+                        <?php if ($ticket->priority === 'Low'): ?>
+                            <span class="fw-medium" style="color: #198754;"><i class="fas fa-circle me-1" style="font-size: 8px;"></i>Low</span>
+                        <?php elseif ($ticket->priority === 'Medium'): ?>
+                            <span class="fw-medium" style="color: var(--fu-primary);"><i class="fas fa-circle me-1" style="font-size: 8px;"></i>Medium</span>
+                        <?php elseif ($ticket->priority === 'High'): ?>
+                            <span class="fw-medium" style="color: #ffc107;"><i class="fas fa-circle me-1" style="font-size: 8px;"></i>High</span>
+                        <?php else: ?>
+                            <span class="fw-medium" style="color: var(--fu-error);"><i class="fas fa-fire me-1"></i>Urgent</span>
                         <?php endif; ?>
                     </div>
-            <?php endforeach;
-            }
-            renderReplies($replies, 0, $ticket->id); ?>
-        <?php endif ?>
-
-        <hr />
-        <div>
-            <h6 class="mb-3">Add a new reply</h6>
-            <?= form_open('student/tickets/' . $ticket->id . '/reply') ?>
-            <?= csrf_field() ?>
-            <div class="mb-3">
-                <?= form_textarea('message', old('message', ''), ['class' => 'form-control', 'rows' => 4, 'placeholder' => 'Write your message...']) ?>
+                    <div class="mb-3">
+                        <label class="text-uppercase small fw-semibold mb-1 d-block" style="color: var(--fu-on-surface-variant);">Office</label>
+                        <div style="color: var(--fu-on-surface);"><?= esc((string) $ticket->office_name) ?></div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="text-uppercase small fw-semibold mb-1 d-block" style="color: var(--fu-on-surface-variant);">Created</label>
+                        <div style="color: var(--fu-on-surface-variant);"><?= date('M j, Y g:i A', strtotime($ticket->created_at)) ?></div>
+                    </div>
+                </div>
             </div>
-            <button type="submit" class="btn btn-primary">Send Reply</button>
-            <?= form_close() ?>
         </div>
     </div>
-</div>
+</section>
 <?= $this->endSection() ?>
 <?php $this->section('scripts') ?>
 <script>
@@ -103,4 +142,4 @@ $priorityClass = $priorityClasses[$ticket->priority] ?? 'bg-secondary text-light
         });
     });
 </script>
-<?= $this->endSection() ?>
+<?php $this->endSection() ?>

@@ -29,6 +29,29 @@ class TicketController extends BaseController
         $this->userModel = new UserModel();
     }
 
+    public function dashboard()
+    {
+        $userId = session()->get('user_id');
+        $tickets = $this->ticketModel->getTicketsForRequester($userId);
+        
+        $activeCount = 0;
+        $resolvedCount = 0;
+        
+        foreach ($tickets as $ticket) {
+            if (in_array($ticket->status, ['Open', 'In Progress', 'Waiting on Student'])) {
+                $activeCount++;
+            } elseif ($ticket->status === 'Resolved') {
+                $resolvedCount++;
+            }
+        }
+
+        return view('tickets/dashboard', [
+            'tickets' => $tickets,
+            'activeCount' => $activeCount,
+            'resolvedCount' => $resolvedCount,
+        ]);
+    }
+
     public function index()
     {
         $userId = session()->get('user_id');

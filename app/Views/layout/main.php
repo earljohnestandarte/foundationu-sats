@@ -7,106 +7,388 @@
     <title><?= $this->renderSection('title') ?: 'Foundation University SATS' ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600;700&display=swap" rel="stylesheet" />
     <style>
         :root {
-            --fu-maroon: #800000;
-            --fu-maroon-hover: #5e0000;
-            --fd-bg: #f4f6f8;
-            --fd-border: #ebeff3;
-            --fd-text-main: #12344d;
+            --fu-primary: #570000;
+            --fu-primary-container: #800000;
+            --fu-on-primary: #ffffff;
+            --fu-on-primary-container: #ff8371;
+            --fu-background: #f8f9fa;
+            --fu-surface: #f8f9fa;
+            --fu-surface-container-lowest: #ffffff;
+            --fu-surface-container-low: #f3f4f5;
+            --fu-surface-container: #edeeef;
+            --fu-surface-container-high: #e7e8e9;
+            --fu-surface-container-highest: #e1e3e4;
+            --fu-on-surface: #191c1d;
+            --fu-on-surface-variant: #5a413d;
+            --fu-outline: #8e706c;
+            --fu-outline-variant: #e2bfb9;
+            --fu-secondary: #5d5f5f;
+            --fu-secondary-container: #dfe0e0;
+            --fu-on-secondary: #ffffff;
+            --fu-on-secondary-container: #616363;
+            --fu-error: #ba1a1a;
+            --fu-tertiary-container: #c9a900;
+            --fu-on-tertiary-container: #4c3e00;
+        }
+
+        * {
+            box-sizing: border-box;
         }
 
         body {
-            background-color: var(--fd-bg);
-            color: var(--fd-text-main);
-            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: var(--fu-background);
+            color: var(--fu-on-surface);
+            font-family: 'Public Sans', system-ui, -apple-system, sans-serif;
+            font-size: 16px;
+            line-height: 1.5;
         }
 
-        .navbar-fu {
-            background-color: var(--fu-maroon) !important;
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1049;
         }
 
-        .navbar-fu .navbar-brand,
-        .navbar-fu .nav-link {
-            color: #fff !important;
+        .sidebar-overlay.active {
+            display: block;
         }
 
-        .navbar-fu .nav-link:hover {
-            color: #f4f6f8 !important;
+        .sidebar {
+            width: 260px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            background-color: var(--fu-surface-container-low);
+            border-right: 1px solid var(--fu-outline-variant);
+            display: flex;
+            flex-direction: column;
+            padding: 8px;
+            z-index: 1050;
+            transform: translateX(0);
+            transition: transform 0.3s ease;
         }
 
-        .card {
-            border: 1px solid var(--fd-border) !important;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(18, 52, 77, 0.06);
+        .main-content {
+            margin-left: 260px;
+            min-height: 100vh;
         }
 
-        .card-header {
-            background-color: #fff;
-            border-bottom: 1px solid var(--fd-border);
+        .top-header {
+            background-color: var(--fu-primary-container);
+            border-bottom: 1px solid var(--fu-outline);
+            position: sticky;
+            top: 0;
+            z-index: 1040;
         }
 
-        .btn-primary {
-            background-color: var(--fu-maroon);
-            border-color: var(--fu-maroon);
+        .top-header h2 {
+            color: #ffffff;
         }
 
-        .btn-primary:hover,
-        .btn-primary:focus {
-            background-color: var(--fu-maroon-hover);
-            border-color: var(--fu-maroon-hover);
+        .top-header p {
+            color: rgba(255, 255, 255, 0.85);
         }
 
-        .table th,
-        .table td {
-            border-top: 0;
-            padding: 12px 16px;
+        .top-header .icon-btn {
+            color: #ffffff;
         }
 
-        .table thead th {
-            border-bottom: 1px solid var(--fd-border);
+        .top-header .icon-btn:hover {
+            background-color: rgba(255, 255, 255, 0.15);
         }
 
-        .table-hover tbody tr:hover {
-            background-color: #f8f9fa;
+        .menu-toggle {
+            display: none;
+            color: #ffffff;
+            background: none;
+            border: none;
+            padding: 8px;
             cursor: pointer;
         }
 
-        .reply-bubble {
-            padding: 1.5rem;
-            border-bottom: 1px solid var(--fd-border);
-            background-color: #fff;
-            border-radius: 12px;
+        .nav-item-sidebar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            text-decoration: none;
+            color: var(--fu-on-surface-variant);
+            transition: all 0.2s ease;
         }
 
-        .reply-bubble:last-child {
+        .nav-item-sidebar:hover {
+            background-color: var(--fu-surface-container-high);
+            color: var(--fu-on-surface);
+        }
+
+        .nav-item-sidebar.active {
+            background-color: var(--fu-primary-container);
+            color: var(--fu-on-primary-container);
+            font-weight: 600;
+        }
+
+        .stat-card {
+            background-color: var(--fu-surface-container-lowest);
+            border: 1px solid var(--fu-outline-variant);
+            border-radius: 8px;
+            padding: 24px;
+        }
+
+        .card-fu {
+            background-color: var(--fu-surface-container-lowest);
+            border: 1px solid var(--fu-outline-variant);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .ticket-item {
+            padding: 24px;
+            border-bottom: 1px solid var(--fu-outline-variant);
+            transition: background-color 0.15s ease;
+            cursor: pointer;
+        }
+
+        .ticket-item:hover {
+            background-color: var(--fu-surface-container-low);
+        }
+
+        .ticket-item:last-child {
             border-bottom: none;
+        }
+
+        .badge-fu {
+            padding: 6px 12px;
+            border-radius: 9999px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .badge-fu.open {
+            background-color: var(--fu-primary-container);
+            color: var(--fu-on-primary-container);
+        }
+
+        .badge-fu.in-progress {
+            background-color: var(--fu-secondary-container);
+            color: var(--fu-on-secondary-container);
+        }
+
+        .badge-fu.resolved {
+            background-color: var(--fu-surface-container-highest);
+            color: var(--fu-on-surface-variant);
+        }
+
+        .btn-fu-primary {
+            background-color: var(--fu-primary);
+            border-color: var(--fu-primary);
+            color: var(--fu-on-primary);
+            font-weight: 600;
+            padding: 8px 20px;
+            border-radius: 8px;
+        }
+
+        .btn-fu-primary:hover {
+            background-color: #450000;
+            border-color: #450000;
+            color: var(--fu-on-primary);
+        }
+
+        .search-input {
+            background-color: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 9999px;
+            padding: 10px 16px 10px 48px;
+            width: 300px;
+            color: #ffffff;
+        }
+
+        .search-input::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .search-input:focus {
+            border-color: #ffffff;
+            box-shadow: 0 0 0 0.2rem rgba(255, 255, 255, 0.25);
+            outline: none;
+        }
+
+        .icon-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--fu-primary);
+            background-color: transparent;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.15s ease;
+        }
+
+        .icon-btn:hover {
+            background-color: var(--fu-surface-container-low);
+        }
+
+        .section-padding {
+            padding: 24px;
+            max-width: 1280px;
+            margin: 0 auto;
+        }
+
+        @media (max-width: 991.98px) {
+            .menu-toggle {
+                display: block;
+            }
+
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .sidebar.active {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .search-input {
+                width: auto;
+                max-width: 200px;
+            }
+        }
+
+        @media (max-width: 767.98px) {
+            .section-padding {
+                padding: 16px;
+            }
+
+            .stat-card {
+                padding: 16px;
+            }
+
+            .ticket-item {
+                padding: 16px;
+            }
+
+            .search-input {
+                display: none;
+            }
         }
     </style>
 </head>
 
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark navbar-fu mb-4">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="<?= base_url('/') ?>">Foundation University SATS</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <?php $session = session(); ?>
-                    <?php if ($session->get('isLoggedIn')) : ?>
-                        <?php
-                        $notificationModel = new \App\Models\NotificationModel();
-                        $unreadCount = $notificationModel->getUnreadCountForUser($session->get('user_id'));
-                        ?>
-                        <li class="nav-item dropdown me-2">
-                            <a class="nav-link dropdown-toggle" href="#" id="notificationDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    <?php $session = session(); ?>
+
+    <?php if ($session->get('isLoggedIn')) : ?>
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+        <aside class="sidebar" id="sidebar">
+            <div class="px-2 py-2">
+                <div class="d-flex align-items-center gap-2 mb-3 px-2 py-2">
+                    <div class="w-10 h-10 rounded d-flex align-items-center justify-content-center">
+                        <img src="<?= base_url('assets/logos/osl_logo.png') ?>" alt="OSL Logo" style="width: 128px; object-cover;">
+                    </div>
+                    <div>
+                        <h1 class="fw-bold mb-0" style="color: var(--fu-primary); font-size: 18px;">Student Affairs</h1>
+                        <p class="mb-0" style="color: var(--fu-on-surface-variant); font-size: 12px; font-weight: 600;">Foundation University</p>
+                    </div>
+                </div>
+
+                <nav class="pt-3">
+                    <?php if ($session->get('user_role') === 'student') : ?>
+                        <a class="nav-item-sidebar <?= $this->renderSection('activeNav') === 'dashboard' ? 'active' : '' ?>" href="<?= site_url('student/dashboard') ?>">
+                            <i class="fas fa-tachometer-alt"></i>
+                            <span style="font-size: 14px; font-weight: 600;">Dashboard</span>
+                        </a>
+                        <a class="nav-item-sidebar <?= $this->renderSection('activeNav') === 'tickets' ? 'active' : '' ?>" href="<?= site_url('student/tickets') ?>">
+                            <i class="fas fa-ticket-alt"></i>
+                            <span style="font-size: 14px; font-weight: 600;">My Tickets</span>
+                        </a>
+                        <a class="nav-item-sidebar <?= $this->renderSection('activeNav') === 'create' ? 'active' : '' ?>" href="<?= site_url('student/tickets/create') ?>">
+                            <i class="fas fa-plus-square"></i>
+                            <span style="font-size: 14px; font-weight: 600;">Submit Concern</span>
+                        </a>
+                    <?php elseif ($session->get('user_role') === 'agent') : ?>
+                        <a class="nav-item-sidebar <?= $this->renderSection('activeNav') === 'dashboard' ? 'active' : '' ?>" href="<?= site_url('agent/dashboard') ?>">
+                            <i class="fas fa-tachometer-alt"></i>
+                            <span style="font-size: 14px; font-weight: 600;">Dashboard</span>
+                        </a>
+                    <?php endif; ?>
+
+                    <a class="nav-item-sidebar" href="#">
+                        <i class="fas fa-book"></i>
+                        <span style="font-size: 14px; font-weight: 600;">Knowledge Base</span>
+                    </a>
+                    <a class="nav-item-sidebar" href="#">
+                        <i class="fas fa-university"></i>
+                        <span style="font-size: 14px; font-weight: 600;">Offices</span>
+                    </a>
+                </nav>
+            </div>
+
+            <div class="mt-auto px-2 py-3" style="border-top: 1px solid var(--fu-outline-variant);">
+                <?php if ($session->get('user_role') === 'student') : ?>
+                    <a href="<?= site_url('student/tickets/create') ?>" class="btn btn-fu-primary w-100 mb-3 d-flex align-items-center justify-content-center gap-2">
+                        <i class="fas fa-plus"></i> New Ticket
+                    </a>
+                <?php endif; ?>
+
+                <nav>
+                    <a class="nav-item-sidebar" href="#">
+                        <i class="fas fa-cog"></i>
+                        <span style="font-size: 14px; font-weight: 600;">Settings</span>
+                    </a>
+                    <a class="nav-item-sidebar" href="#">
+                        <i class="fas fa-headset"></i>
+                        <span style="font-size: 14px; font-weight: 600;">Support</span>
+                    </a>
+                </nav>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="top-header">
+                <div class="d-flex justify-content-between align-items-center px-4 py-2" style="max-width: 1280px; margin: 0 auto;">
+                    <div class="d-flex align-items-center gap-2">
+                        <button class="menu-toggle" id="menuToggle">
+                            <i class="fas fa-bars fa-lg"></i>
+                        </button>
+                        <h2 class="fw-bold mb-0" style="color: #ffffff; font-size: 20px;">SATS</h2>
+                        <div class="mx-2 d-none d-md-block" style="width: 1px; height: 24px; background-color: rgba(255,255,255,0.3);"></div>
+                        <p class="mb-0 d-none d-md-block" style="color: #ffffff;"><?= $session->get('user_role') === 'student' ? 'Student Dashboard' : 'Agent Dashboard' ?></p>
+                    </div>
+
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="position-relative d-none d-lg-block">
+                            <i class="fas fa-search position-absolute" style="left: 16px; top: 50%; transform: translateY(-50%); color: rgba(255, 255, 255, 0.85);"></i>
+                            <input type="text" class="search-input" placeholder="Search tickets...">
+                        </div>
+
+                        <div class="d-flex align-items-center gap-2">
+                            <?php
+                            $notificationModel = new \App\Models\NotificationModel();
+                            $unreadCount = $notificationModel->getUnreadCountForUser($session->get('user_id'));
+                            ?>
+                            <button class="icon-btn" id="notificationDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                                 <i class="fas fa-bell"></i>
                                 <?php if ($unreadCount > 0) : ?>
-                                    <span class="badge bg-danger rounded-pill"><?= $unreadCount ?></span>
+                                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill" style="background-color: var(--fu-error);"><?= $unreadCount ?></span>
                                 <?php endif; ?>
-                            </a>
+                            </button>
+
                             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="notificationDropdown">
                                 <li>
                                     <h6 class="dropdown-header">Notifications</h6>
@@ -115,12 +397,12 @@
                                 $notifications = $notificationModel->getUnreadNotificationsForUser($session->get('user_id'));
                                 if (empty($notifications)) :
                                 ?>
-                                    <li><a class="dropdown-item" href="#">No new notifications</a></li>
+                                    <li><a class="dropdown-item text-muted" href="#">No new notifications</a></li>
                                 <?php else : ?>
                                     <?php foreach ($notifications as $notification) : ?>
                                         <li>
                                             <a class="dropdown-item notification-item" href="#" data-id="<?= $notification->id ?>">
-                                                <div class="small mb-1 text-truncate" style="max-width: 260px;"><?= esc((string)$notification->message) ?></div>
+                                                <div class="small mb-1 text-truncate" style="max-width: 300px;"><?= esc((string)$notification->message) ?></div>
                                                 <small class="text-muted"><?= date('M j, H:i', strtotime($notification->created_at)) ?></small>
                                             </a>
                                         </li>
@@ -131,64 +413,63 @@
                                 </li>
                                 <li><a class="dropdown-item" href="#">View All Notifications</a></li>
                             </ul>
-                        </li>
-                        <?php if ($session->get('user_role') === 'student') : ?>
-                            <li class="nav-item">
-                                <a class="nav-link" href="<?= site_url('student/tickets') ?>">My Tickets</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="<?= site_url('student/tickets/create') ?>">Submit Ticket</a>
-                            </li>
-                        <?php elseif ($session->get('user_role') === 'agent') : ?>
-                            <li class="nav-item">
-                                <a class="nav-link" href="<?= site_url('agent/dashboard') ?>">Agent Dashboard</a>
-                            </li>
-                        <?php endif ?>
-                        <li class="nav-item">
-                            <a class="nav-link" href="<?= site_url('logout') ?>">Logout</a>
-                        </li>
-                    <?php else : ?>
-                        <li class="nav-item">
-                            <a class="nav-link" href="<?= site_url('login') ?>">Login</a>
-                        </li>
-                    <?php endif ?>
-                </ul>
-            </div>
-        </div>
-    </nav>
-    <div class="container">
-        <!-- Toast Container for Snackbars -->
-        <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999;">
-            <?php if (session()->getFlashdata('success')) : ?>
-                <div id="successToast" class="toast align-items-center text-white bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
-                    <div class="d-flex">
-                        <div class="toast-body">
-                            <i class="fas fa-check-circle me-2"></i>
-                            <?= session()->getFlashdata('success') ?>
-                        </div>
-                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-                    </div>
-                </div>
-            <?php endif; ?>
-            <?php if (session()->getFlashdata('error')) : ?>
-                <div id="errorToast" class="toast align-items-center text-white bg-danger border-0" role="alert" aria-live="assertive" aria-atomic="true">
-                    <div class="d-flex">
-                        <div class="toast-body">
-                            <i class="fas fa-exclamation-triangle me-2"></i>
-                            <?= session()->getFlashdata('error') ?>
-                        </div>
-                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-                    </div>
-                </div>
-            <?php endif; ?>
-        </div>
 
-        <?= $this->renderSection('content') ?>
-    </div>
+                            <button class="icon-btn d-none d-md-block">
+                                <i class="fas fa-question-circle"></i>
+                            </button>
+
+                            <div class="d-flex align-items-center gap-2 ms-1">
+                                <div class="w-8 h-8 rounded-circle overflow-hidden d-none d-md-block" style="background-color: rgba(255, 255, 255, 0.2);">
+                                    <i class="fas fa-user d-flex align-items-center justify-content-center w-100 h-100" style="color: #ffffff;"></i>
+                                </div>
+                                <a href="<?= site_url('logout') ?>" class="text-decoration-none d-none d-md-block" style="color: #ffffff; font-size: 14px; font-weight: 600;">Sign Out</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999;">
+                <?php if (session()->getFlashdata('success')) : ?>
+                    <div id="successToast" class="toast align-items-center text-white border-0 shadow" role="alert" aria-live="assertive" aria-atomic="true" style="background-color: var(--fu-primary);">
+                        <div class="d-flex">
+                            <div class="toast-body px-4 py-3">
+                                <i class="fas fa-check-circle me-2"></i>
+                                <?= session()->getFlashdata('success') ?>
+                            </div>
+                            <button type="button" class="btn-close btn-close-white me-3 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                        </div>
+                    </div>
+                <?php endif; ?>
+                <?php if (session()->getFlashdata('error')) : ?>
+                    <div id="errorToast" class="toast align-items-center text-white border-0 shadow" role="alert" aria-live="assertive" aria-atomic="true" style="background-color: var(--fu-error);">
+                        <div class="d-flex">
+                            <div class="toast-body px-4 py-3">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <?= session()->getFlashdata('error') ?>
+                            </div>
+                            <button type="button" class="btn-close btn-close-white me-3 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                        </div>
+                    </div>
+                <?php endif; ?>
+            </div>
+
+            <?= $this->renderSection('content') ?>
+        </main>
+    <?php else : ?>
+        <main>
+            <?= $this->renderSection('content') ?>
+        </main>
+    <?php endif; ?>
+
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         $(document).ready(function() {
+            $('#menuToggle, #sidebarOverlay').on('click', function() {
+                $('#sidebar, #sidebarOverlay').toggleClass('active');
+            });
+
             $('.notification-item').on('click', function(e) {
                 e.preventDefault();
                 var notificationId = $(this).data('id');
@@ -204,13 +485,16 @@
                 });
             });
 
-            // Initialize and show toasts (snackbars)
             <?php if (session()->getFlashdata('success')) : ?>
-                var successToast = new bootstrap.Toast(document.getElementById('successToast'));
+                var successToast = new bootstrap.Toast(document.getElementById('successToast'), {
+                    delay: 5000
+                });
                 successToast.show();
             <?php endif; ?>
             <?php if (session()->getFlashdata('error')) : ?>
-                var errorToast = new bootstrap.Toast(document.getElementById('errorToast'));
+                var errorToast = new bootstrap.Toast(document.getElementById('errorToast'), {
+                    delay: 5000
+                });
                 errorToast.show();
             <?php endif; ?>
         });

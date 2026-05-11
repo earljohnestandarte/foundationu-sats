@@ -24,9 +24,9 @@ class AuthController extends BaseController
                 return redirect()->to(site_url('agent/dashboard'));
             }
             if ($role === 'student') {
-                return redirect()->to(site_url('student/tickets'));
+                return redirect()->to(site_url('student/dashboard'));
             }
-            return redirect()->to(site_url('student/tickets'));
+            return redirect()->to(site_url('student/dashboard'));
         }
 
         return view('auth/login', [

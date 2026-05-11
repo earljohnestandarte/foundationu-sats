@@ -11,6 +11,7 @@ $routes->post('login', 'AuthController::attempt');
 $routes->get('logout', 'AuthController::logout');
 
 $routes->group('student', ['filter' => ['auth', 'role:student']], function ($routes) {
+    $routes->get('dashboard', 'TicketController::dashboard');
     $routes->get('tickets', 'TicketController::index');
     $routes->get('tickets/create', 'TicketController::create');
     $routes->post('tickets/store', 'TicketController::store');
