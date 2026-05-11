@@ -6,7 +6,7 @@
 <section class="section-padding">
     <div class="mb-4">
         <div class="d-flex align-items-center gap-2 mb-2">
-            <a href="<?= site_url('student/tickets') ?>" class="text-decoration-none" style="color: var(--fu-on-surface-variant);">
+            <a href="<?= site_url('student/tickets') ?>" class="text-decoration-none">
                 <i class="fas fa-arrow-left"></i> Back
             </a>
         </div>
@@ -38,7 +38,7 @@
                         <?php function renderReplies(array $replies, int $depth = 0, $ticketId)
                         {
                             foreach ($replies as $reply): ?>
-                                <div class="reply-bubble<?= $depth ? ' ms-4 border-start border-2 ps-4' : '' ?>" style="padding: 20px 24px; border-bottom: 1px solid var(--fu-outline-variant);">
+                                <div class="reply-bubble<?= $depth ? ' depth-1' : '' ?>">
                                     <div class="d-flex justify-content-between align-items-start mb-2">
                                         <div class="d-flex align-items-center gap-2">
                                             <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 36px; height: 36px; background-color: var(--fu-surface-container-low);">
@@ -51,15 +51,15 @@
                                         </div>
                                     </div>
                                     <div style="line-height: 1.7;"><?= nl2br(esc((string) $reply->message)) ?></div>
-                                    <button type="button" class="btn btn-sm btn-link text-decoration-none reply-toggle mt-2" style="color: var(--fu-on-surface-variant);" data-target="reply-form-<?= $reply->id ?>">
+                                    <button type="button" class="btn btn-sm btn-link text-decoration-none reply-toggle mt-2" data-target="reply-form-<?= $reply->id ?>">
                                         <i class="fas fa-reply me-1"></i> Reply
                                     </button>
-                                    <div class="reply-form reply-form-<?= $reply->id ?> mt-3" style="display:none;">
+                                    <div class="reply-form reply-form-<?= $reply->id ?> mt-3">
                                         <?= form_open('student/tickets/' . $ticketId . '/reply') ?>
                                         <?= csrf_field() ?>
                                         <?= form_hidden('reply_to', $reply->id) ?>
                                         <div class="mb-2">
-                                            <textarea name="message" class="form-control" rows="3" placeholder="Write a reply..." style="border-radius: 8px; border-color: var(--fu-outline-variant);"></textarea>
+                                            <textarea name="message" class="form-control" rows="3" placeholder="Write a reply..."></textarea>
                                         </div>
                                         <button type="submit" class="btn btn-fu-primary btn-sm">Post Reply</button>
                                         <?= form_close() ?>
@@ -78,7 +78,7 @@
                     <?= form_open('student/tickets/' . $ticket->id . '/reply') ?>
                     <?= csrf_field() ?>
                     <div class="mb-3">
-                        <textarea name="message" class="form-control" rows="4" placeholder="Write your message..." style="border-radius: 8px; border-color: var(--fu-outline-variant);" required></textarea>
+                        <textarea name="message" class="form-control" rows="4" placeholder="Write your message..." required></textarea>
                     </div>
                     <button type="submit" class="btn btn-fu-primary d-flex align-items-center gap-2">
                         <i class="fas fa-paper-plane"></i> Send Reply
@@ -109,13 +109,13 @@
                     <div class="mb-3">
                         <label class="text-uppercase small fw-semibold mb-1 d-block" style="color: var(--fu-on-surface-variant);">Priority</label>
                         <?php if ($ticket->priority === 'Low'): ?>
-                            <span class="fw-medium" style="color: #198754;"><i class="fas fa-circle me-1" style="font-size: 8px;"></i>Low</span>
+                            <span class="fw-medium priority-low"><i class="fas fa-circle priority-dot"></i>Low</span>
                         <?php elseif ($ticket->priority === 'Medium'): ?>
-                            <span class="fw-medium" style="color: var(--fu-primary);"><i class="fas fa-circle me-1" style="font-size: 8px;"></i>Medium</span>
+                            <span class="fw-medium priority-medium"><i class="fas fa-circle priority-dot"></i>Medium</span>
                         <?php elseif ($ticket->priority === 'High'): ?>
-                            <span class="fw-medium" style="color: #ffc107;"><i class="fas fa-circle me-1" style="font-size: 8px;"></i>High</span>
+                            <span class="fw-medium priority-high"><i class="fas fa-circle priority-dot"></i>High</span>
                         <?php else: ?>
-                            <span class="fw-medium" style="color: var(--fu-error);"><i class="fas fa-fire me-1"></i>Urgent</span>
+                            <span class="fw-medium priority-urgent"><i class="fas fa-fire me-1"></i>Urgent</span>
                         <?php endif; ?>
                     </div>
                     <div class="mb-3">
@@ -133,13 +133,5 @@
 </section>
 <?= $this->endSection() ?>
 <?php $this->section('scripts') ?>
-<script>
-    $(document).ready(function() {
-        $('.reply-toggle').on('click', function() {
-            var target = $(this).data('target');
-            $('.reply-form').not('.' + target).hide();
-            $('.' + target).toggle();
-        });
-    });
-</script>
+<script src="<?= base_url('assets/js/ticket-view.js') ?>"></script>
 <?php $this->endSection() ?>

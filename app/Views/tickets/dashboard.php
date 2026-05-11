@@ -142,7 +142,7 @@
 <footer class="py-4 px-4 d-flex flex-column md:flex-row justify-content-between align-items-center" style="max-width: 1280px; margin: 0 auto; border-top: 1px solid var(--fu-outline-variant); margin-top: 24px;">
     <div class="d-flex align-items-center gap-2 mb-3 mb-md-0">
         <span class="fw-bold" style="color: var(--fu-primary);">SATS</span>
-        <p class="mb-0" style="color: var(--fu-on-surface-variant); font-size: 12px;">© 2024 Foundation University Student Affairs. All rights reserved.</p>
+        <p class="mb-0" style="color: var(--fu-on-surface-variant); font-size: 12px;">© 2026 Foundation University Office of Student Life. All rights reserved.</p>
     </div>
     <div class="d-flex gap-4">
         <a href="#" class="text-decoration-none fw-semibold" style="color: var(--fu-on-surface-variant); font-size: 14px;">Privacy Policy</a>

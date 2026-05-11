@@ -71,7 +71,7 @@ class AgentController extends BaseController
 
     public function assign($id)
     {
-        if ($this->request->getMethod() !== 'post') {
+        if ($this->request->getMethod() !== 'POST') {
             return redirect()->back();
         }
 
@@ -207,7 +207,7 @@ class AgentController extends BaseController
 
     public function reassign($id)
     {
-        if ($this->request->getMethod() !== 'post') {
+        if ($this->request->getMethod() !== 'POST') {
             return redirect()->back();
         }
 

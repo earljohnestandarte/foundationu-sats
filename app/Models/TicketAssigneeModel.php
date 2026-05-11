@@ -9,7 +9,7 @@ class TicketAssigneeModel extends Model
     protected $table            = 'ticket_assignees';
     protected $primaryKey       = 'id';
     protected $useAutoIncrement = true;
-    protected $returnType       = 'array';
+    protected $returnType       = 'object';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
     protected $allowedFields    = ['ticket_id', 'user_id', 'assigned_by', 'assigned_at'];
