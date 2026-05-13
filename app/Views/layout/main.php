@@ -154,7 +154,7 @@
 
             <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999;">
                 <?php if (session()->getFlashdata('success')) : ?>
-                    <div id="successToast" class="toast align-items-center text-white border-0 shadow" role="alert" aria-live="assertive" aria-atomic="true" style="background-color: var(--fu-primary);">
+                    <div id="successToast" class="toast align-items-center text-white border-0 shadow" role="alert" aria-live="assertive" aria-atomic="true" style="background-color: var(--fu-success);">
                         <div class="d-flex">
                             <div class="toast-body px-4 py-3">
                                 <i class="fas fa-check-circle me-2"></i>

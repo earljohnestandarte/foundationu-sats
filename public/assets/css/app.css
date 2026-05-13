@@ -19,6 +19,9 @@
     --fu-on-secondary: #ffffff;
     --fu-on-secondary-container: #616363;
     --fu-error: #ba1a1a;
+    --fu-success: #15803d;
+    --fu-warning: #92400e;
+    --fu-info: #1d4ed8;
     --fu-tertiary-container: #c9a900;
     --fu-on-tertiary-container: #4c3e00;
 }
@@ -163,18 +166,23 @@ body {
 }
 
 .badge-fu.open {
-    background-color: var(--fu-primary-container);
-    color: var(--fu-on-primary-container);
+    background-color: #dbeafe;
+    color: #1e40af;
 }
 
 .badge-fu.in-progress {
-    background-color: var(--fu-secondary-container);
-    color: var(--fu-on-secondary-container);
+    background-color: #fef3c7;
+    color: #92400e;
 }
 
 .badge-fu.resolved {
-    background-color: var(--fu-surface-container-highest);
-    color: var(--fu-on-surface-variant);
+    background-color: #dcfce7;
+    color: #15803d;
+}
+
+.badge-fu.closed {
+    background-color: #f3f4f6;
+    color: #4b5563;
 }
 
 .btn-fu-primary {
@@ -223,10 +231,32 @@ body {
     border: none;
     cursor: pointer;
     transition: background-color 0.15s ease;
+    position: relative;
 }
 
 .icon-btn:hover {
     background-color: var(--fu-surface-container-low);
+}
+
+.notification-badge {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    min-width: 18px;
+    height: 18px;
+    padding: 2px 5px;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: baseline;
+    border-radius: 10px;
+    background-color: #dc2626;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .section-padding {
@@ -268,11 +298,11 @@ body {
 }
 
 .priority-medium {
-    color: var(--fu-primary);
+    color: var(--fu-warning);
 }
 
 .priority-high {
-    color: #ffc107;
+    color: #92400e;
 }
 
 .priority-urgent {
@@ -301,6 +331,18 @@ body {
     border-radius: 8px;
     border-color: var(--fu-outline-variant);
     color: var(--fu-on-surface);
+}
+
+.btn-reassign:hover {
+    background-color: var(--fu-surface-container);
+}
+
+.toast-success {
+    background-color: #15803d !important;
+}
+
+.toast-error {
+    background-color: var(--fu-error) !important;
 }
 
 @media (max-width: 991.98px) {

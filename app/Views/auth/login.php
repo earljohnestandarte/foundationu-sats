@@ -22,7 +22,7 @@
             Welcome back!
         </h2>
         <p class="text-center mb-8 login-subtitle">
-            Sign in to continue to FU-SATS Web
+            Sign in to continue to FU-SATS
         </p>
 
         <?php if (isset($loginError)): ?>
