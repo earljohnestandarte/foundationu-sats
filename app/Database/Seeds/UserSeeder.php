@@ -2,7 +2,7 @@
 
 namespace App\Database\Seeds;
 
-use App\Models\OfficeModel;
+use App\Models\DepartmentModel;
 use App\Models\UserModel;
 use CodeIgniter\Database\Seeder;
 
@@ -10,12 +10,12 @@ class UserSeeder extends Seeder
 {
     public function run()
     {
-        $officeModel = new OfficeModel();
+        $departmentModel = new DepartmentModel();
         $userModel = new UserModel();
 
-        $counseling = $officeModel->where('name', 'OSL Counseling')->first();
-        $records = $officeModel->where('name', 'OSL Student Records')->first();
-        $wellness = $officeModel->where('name', 'OSL Wellness')->first();
+        $counseling = $departmentModel->where('name', 'OSL Counseling')->first();
+        $records = $departmentModel->where('name', 'OSL Student Records')->first();
+        $wellness = $departmentModel->where('name', 'OSL Wellness')->first();
 
         $userModel->insertBatch([
             [
@@ -24,7 +24,7 @@ class UserSeeder extends Seeder
                 'email' => 'liza.santos@foundationu.com',
                 'password' => password_hash('12345678', PASSWORD_DEFAULT),
                 'role' => 'student',
-                'office_id' => null,
+                'department_id' => null,
             ],
             [
                 'student_id_number' => '20220002',
@@ -32,7 +32,7 @@ class UserSeeder extends Seeder
                 'email' => 'juan.delacruz@foundationu.com',
                 'password' => password_hash('12345678', PASSWORD_DEFAULT),
                 'role' => 'student',
-                'office_id' => null,
+                'department_id' => null,
             ],
             [
                 'student_id_number' => '20220003',
@@ -40,7 +40,7 @@ class UserSeeder extends Seeder
                 'email' => 'maria.reyes@foundationu.com',
                 'password' => password_hash('12345678', PASSWORD_DEFAULT),
                 'role' => 'student',
-                'office_id' => null,
+                'department_id' => null,
             ],
             [
                 'student_id_number' => null,
@@ -48,7 +48,7 @@ class UserSeeder extends Seeder
                 'email' => 'mark.garcia@foundationu.com',
                 'password' => password_hash('12345678', PASSWORD_DEFAULT),
                 'role' => 'agent',
-                'office_id' => $counseling ? $counseling->id : null,
+                'department_id' => $counseling ? $counseling->id : null,
             ],
             [
                 'student_id_number' => null,
@@ -56,7 +56,7 @@ class UserSeeder extends Seeder
                 'email' => 'elena.rodriguez@foundationu.com',
                 'password' => password_hash('12345678', PASSWORD_DEFAULT),
                 'role' => 'agent',
-                'office_id' => $counseling ? $counseling->id : null,
+                'department_id' => $counseling ? $counseling->id : null,
             ],
             [
                 'student_id_number' => null,
@@ -64,7 +64,7 @@ class UserSeeder extends Seeder
                 'email' => 'carlos.mendoza@foundationu.com',
                 'password' => password_hash('12345678', PASSWORD_DEFAULT),
                 'role' => 'agent',
-                'office_id' => $counseling ? $counseling->id : null,
+                'department_id' => $counseling ? $counseling->id : null,
             ],
             [
                 'student_id_number' => null,
@@ -72,7 +72,7 @@ class UserSeeder extends Seeder
                 'email' => 'sarah.johnson@foundationu.com',
                 'password' => password_hash('12345678', PASSWORD_DEFAULT),
                 'role' => 'agent',
-                'office_id' => $records ? $records->id : null,
+                'department_id' => $records ? $records->id : null,
             ],
             [
                 'student_id_number' => null,
@@ -80,7 +80,7 @@ class UserSeeder extends Seeder
                 'email' => 'david.chen@foundationu.com',
                 'password' => password_hash('12345678', PASSWORD_DEFAULT),
                 'role' => 'agent',
-                'office_id' => $records ? $records->id : null,
+                'department_id' => $records ? $records->id : null,
             ],
             [
                 'student_id_number' => null,
@@ -88,7 +88,7 @@ class UserSeeder extends Seeder
                 'email' => 'lisa.wong@foundationu.com',
                 'password' => password_hash('12345678', PASSWORD_DEFAULT),
                 'role' => 'agent',
-                'office_id' => $records ? $records->id : null,
+                'department_id' => $records ? $records->id : null,
             ],
             [
                 'student_id_number' => null,
@@ -96,7 +96,7 @@ class UserSeeder extends Seeder
                 'email' => 'anne.delacruz@foundationu.com',
                 'password' => password_hash('12345678', PASSWORD_DEFAULT),
                 'role' => 'agent',
-                'office_id' => $wellness ? $wellness->id : null,
+                'department_id' => $wellness ? $wellness->id : null,
             ],
             [
                 'student_id_number' => null,
@@ -104,7 +104,7 @@ class UserSeeder extends Seeder
                 'email' => 'michael.torres@foundationu.com',
                 'password' => password_hash('12345678', PASSWORD_DEFAULT),
                 'role' => 'agent',
-                'office_id' => $wellness ? $wellness->id : null,
+                'department_id' => $wellness ? $wellness->id : null,
             ],
             [
                 'student_id_number' => null,
@@ -112,7 +112,7 @@ class UserSeeder extends Seeder
                 'email' => 'jennifer.kim@foundationu.com',
                 'password' => password_hash('12345678', PASSWORD_DEFAULT),
                 'role' => 'agent',
-                'office_id' => $wellness ? $wellness->id : null,
+                'department_id' => $wellness ? $wellness->id : null,
             ],
             [
                 'student_id_number' => null,
@@ -120,7 +120,7 @@ class UserSeeder extends Seeder
                 'email' => 'robert.smith@foundationu.com',
                 'password' => password_hash('12345678', PASSWORD_DEFAULT),
                 'role' => 'admin',
-                'office_id' => null,
+                'department_id' => null,
             ],
             [
                 'student_id_number' => null,
@@ -128,7 +128,7 @@ class UserSeeder extends Seeder
                 'email' => 'patricia.brown@foundationu.com',
                 'password' => password_hash('12345678', PASSWORD_DEFAULT),
                 'role' => 'admin',
-                'office_id' => null,
+                'department_id' => null,
             ],
         ]);
     }

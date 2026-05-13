@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Models\TicketModel;
 use App\Models\TicketReplyModel;
 use App\Models\TicketAssigneeModel;
+use App\Models\TicketFeedbackModel;
 use App\Models\UserModel;
 use App\Models\NotificationModel;
 use CodeIgniter\Controller;
@@ -15,6 +16,7 @@ class AgentController extends BaseController
     protected TicketModel $ticketModel;
     protected TicketReplyModel $replyModel;
     protected TicketAssigneeModel $ticketAssigneeModel;
+    protected TicketFeedbackModel $feedbackModel;
     protected UserModel $userModel;
     protected NotificationModel $notificationModel;
 
@@ -25,16 +27,57 @@ class AgentController extends BaseController
         $this->ticketModel = new TicketModel();
         $this->replyModel = new TicketReplyModel();
         $this->ticketAssigneeModel = new TicketAssigneeModel();
+        $this->feedbackModel = new TicketFeedbackModel();
         $this->userModel = new UserModel();
         $this->notificationModel = new NotificationModel();
     }
 
+    private function isElevated(): bool
+    {
+        return in_array(session()->get('user_role'), ['sao', 'admin']);
+    }
+
+    private function canAccess(int $ticketDepartmentId): bool
+    {
+        if ($this->isElevated()) return true;
+        $userDept = session()->get('department_id');
+        return $userDept !== null && $ticketDepartmentId === (int) $userDept;
+    }
+
     public function dashboard()
     {
-        $officeId = session()->get('office_id');
-        $tickets = $this->ticketModel->getTicketsForOffice($officeId);
+        $departmentId = session()->get('department_id');
+
+        if ($this->isElevated() && ! $departmentId) {
+            $tickets = $this->ticketModel->where('archived_at IS NULL')->orderBy('created_at', 'DESC')->findAll();
+            $models = $this->ticketModel;
+            $tickets = array_map(function ($t) use ($models) {
+                return $models->getTicketWithRelations($t->id);
+            }, $tickets);
+        } else {
+            $tickets = $this->ticketModel->getTicketsForDepartment($departmentId);
+        }
 
         return view('agent/dashboard', [
+            'tickets' => $tickets,
+        ]);
+    }
+
+    public function archived()
+    {
+        $departmentId = session()->get('department_id');
+
+        if ($this->isElevated() && ! $departmentId) {
+            $tickets = $this->ticketModel->where('archived_at IS NOT NULL')->orderBy('archived_at', 'DESC')->findAll();
+            $models = $this->ticketModel;
+            $tickets = array_map(function ($t) use ($models) {
+                return $models->getTicketWithRelations($t->id);
+            }, $tickets);
+        } else {
+            $tickets = $this->ticketModel->getArchivedTicketsForDepartment($departmentId);
+        }
+
+        return view('agent/archived', [
             'tickets' => $tickets,
         ]);
     }
@@ -42,14 +85,13 @@ class AgentController extends BaseController
     public function view($id)
     {
         $ticket = $this->ticketModel->getTicketWithRelations((int) $id);
-        $officeId = session()->get('office_id');
 
-        if (! $ticket || $ticket->office_id !== $officeId) {
-            return redirect()->to(site_url('agent/dashboard'))->with('error', 'Ticket not found or access denied.');
+        if (! $ticket || ! $this->canAccess($ticket->department_id)) {
+            return redirect()->to(site_url('agent/dashboard'))->with('error', 'Concern not found or access denied.');
         }
 
         $replies = $this->replyModel
-            ->select('ticket_replies.*, users.name AS author_name')
+            ->select('ticket_replies.*, users.name AS author_name, users.role AS author_role')
             ->join('users', 'users.id = ticket_replies.user_id')
             ->where('ticket_replies.ticket_id', $ticket->id)
             ->orderBy('ticket_replies.created_at', 'ASC')
@@ -57,15 +99,23 @@ class AgentController extends BaseController
 
         $replyTree = $this->buildReplyTree($replies);
 
-        $agents = $this->userModel->getAgentsForOffice($officeId);
+        if ($this->isElevated()) {
+            $agents = $this->userModel->where('role', 'agent')->findAll();
+        } else {
+            $agents = $this->userModel->getAgentsForDepartment(session()->get('department_id'));
+        }
 
         $assignees = $this->ticketModel->getAssigneesForTicket($ticket->id);
+        $timeline = $this->ticketModel->getTimeline($ticket->id);
+        $feedback = $this->feedbackModel->getFeedbackForTicket($ticket->id);
 
         return view('agent/ticket_view', [
-            'ticket' => $ticket,
-            'replies' => $replyTree,
-            'agents' => $agents,
+            'ticket'    => $ticket,
+            'replies'   => $replyTree,
+            'agents'    => $agents,
             'assignees' => $assignees,
+            'timeline'  => $timeline,
+            'feedback'  => $feedback,
         ]);
     }
 
@@ -75,54 +125,93 @@ class AgentController extends BaseController
             return redirect()->back();
         }
 
-        // Ensure TicketModel returns an object or this will fail
         $ticket = $this->ticketModel->find((int) $id);
-        $officeId = session()->get('office_id');
+        $departmentId = session()->get('department_id');
         $userId = session()->get('user_id');
 
         if (! $userId) {
             return redirect()->to(site_url('agent/view/' . $id))->with('error', 'User not logged in.');
         }
 
-        if (! $ticket || $ticket->office_id !== $officeId) {
-            return redirect()->to(site_url('agent/view/' . $id))->with('error', 'Ticket not found or access denied.');
+        if (! $ticket || ! $this->canAccess($ticket->department_id)) {
+            return redirect()->to(site_url('agent/view/' . $id))->with('error', 'Concern not found or access denied.');
         }
 
-        // 1. Check if the ticket is already assigned to THIS user
-        if ($ticket->resolver_id == $userId) {
-            return redirect()->to(site_url('agent/view/' . $ticket->id))->with('error', 'You are already assigned to this ticket.');
+        $resolverId = (int) $this->request->getPost('resolver_id');
+
+        if ($ticket->resolver_id == $resolverId) {
+            return redirect()->to(site_url('agent/view/' . $ticket->id))->with('error', 'This agent is already assigned to this concern.');
         }
 
-        // 2. Log the assignment in your new ticket_assignees table
-        // (We use insert ignore or simply insert since we want a history log)
-        $this->ticketAssigneeModel->assignUserToTicket($ticket->id, $userId, $userId);
+        if ($resolverId !== $userId && ! $this->isElevated()) {
+            $newResolver = $this->userModel->find($resolverId);
+            if (! $newResolver || $newResolver->role !== 'agent' || $newResolver->department_id !== $departmentId) {
+                return redirect()->back()->with('error', 'Selected agent is not valid or belongs to another department.');
+            }
+        }
 
-        // 3. Update the actual tickets table so the system knows who the active agent is
-        $updateSuccess = $this->ticketModel->update($ticket->id, [
-            'resolver_id' => $userId,
+        $this->ticketAssigneeModel->assignUserToTicket($ticket->id, $resolverId, $userId);
+
+        $this->ticketModel->update($ticket->id, [
+            'resolver_id' => $resolverId,
             'status'      => 'In Progress',
         ]);
 
-        if (! $updateSuccess) {
-            log_message('error', 'Ticket update failed. Check TicketModel allowedFields.');
-            return redirect()->to(site_url('agent/view/' . $ticket->id))->with('error', 'Failed to update ticket status.');
-        }
-
-        // 4. Notify the student
         $this->notificationModel->insert([
             'user_id'   => $ticket->requester_id,
             'ticket_id' => $ticket->id,
-            'message'   => 'Your ticket "' . $ticket->subject . '" has been assigned to an agent.',
+            'message'   => 'Your concern "' . $ticket->subject . '" has been assigned to an agent.',
             'is_read'   => false,
         ]);
 
-        return redirect()->to(site_url('agent/view/' . $ticket->id))->with('success', 'Ticket assigned to you successfully.');
+        if ($resolverId !== $userId) {
+            $this->notificationModel->insert([
+                'user_id'   => $resolverId,
+                'ticket_id' => $ticket->id,
+                'message'   => 'Concern "' . $ticket->subject . '" has been assigned to you.',
+                'is_read'   => false,
+            ]);
+        }
+
+        return redirect()->to(site_url('agent/view/' . $ticket->id))->with('success', 'Concern assigned successfully.');
+    }
+
+    public function escalate($id)
+    {
+        $ticket = $this->ticketModel->find((int) $id);
+
+        if (! $ticket || ! $this->canAccess($ticket->department_id)) {
+            return redirect()->back()->with('error', 'Concern not available for your department.');
+        }
+
+        if ($ticket->is_escalated) {
+            return redirect()->back()->with('error', 'This concern has already been escalated.');
+        }
+
+        $this->ticketModel->update($ticket->id, [
+            'is_escalated'      => true,
+            'escalated_at'      => date('Y-m-d H:i:s'),
+            'escalated_by'      => session()->get('user_id'),
+            'escalation_reason' => $this->request->getPost('reason') ?: 'Escalated by agent',
+        ]);
+
+        $saos = $this->userModel->whereIn('role', ['sao', 'admin'])->findAll();
+        foreach ($saos as $sao) {
+            $this->notificationModel->insert([
+                'user_id'   => $sao->id,
+                'ticket_id' => $ticket->id,
+                'message'   => 'Concern "' . $ticket->subject . '" has been escalated by an agent.',
+                'is_read'   => false,
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'Concern escalated to administration.');
     }
 
     public function updateStatus($id)
     {
         $rules = [
-            'status' => 'required|in_list[Open,In Progress,Waiting on Student,Resolved,Closed]',
+            'status' => 'required|in_list[Open,In Progress,Pending,Resolved,Closed]',
         ];
 
         if (! $this->validate($rules)) {
@@ -130,46 +219,40 @@ class AgentController extends BaseController
         }
 
         $ticket = $this->ticketModel->find((int) $id);
-        $officeId = session()->get('office_id');
 
-        if (! $ticket || $ticket->office_id !== $officeId) {
-            return redirect()->back()->with('error', 'Ticket not available for your office.');
+        if (! $ticket || ! $this->canAccess($ticket->department_id)) {
+            return redirect()->back()->with('error', 'Concern not available for your department.');
         }
 
-        $this->ticketModel->update($ticket->id, [
-            'status' => $this->request->getPost('status'),
-        ]);
+        $newStatus = $this->request->getPost('status');
+        $updateData = ['status' => $newStatus];
 
-        // Notify the student about status change
+        if ($newStatus === 'Resolved' && ! $ticket->resolved_at) {
+            $updateData['resolved_at'] = date('Y-m-d H:i:s');
+        }
+
+        $this->ticketModel->update($ticket->id, $updateData);
+
         $this->notificationModel->insert([
-            'user_id' => $ticket->requester_id,
+            'user_id'   => $ticket->requester_id,
             'ticket_id' => $ticket->id,
-            'message' => 'Your ticket "' . $ticket->subject . '" status has been updated to: ' . $this->request->getPost('status'),
-            'is_read' => false,
+            'message'   => 'Your concern "' . $ticket->subject . '" status has been updated to: ' . $newStatus,
+            'is_read'   => false,
         ]);
 
-        return redirect()->back()->with('success', 'Ticket status updated successfully.');
+        return redirect()->back()->with('success', 'Concern status updated successfully.');
     }
 
     public function addReply($id)
     {
-        $rules = [
-            'message' => 'required|min_length[3]',
-        ];
-
-        if (! $this->validate($rules)) {
-            return redirect()->back()->withInput()->with('error', 'Please enter a valid reply message.');
-        }
-
         $ticket = $this->ticketModel->find((int) $id);
-        $officeId = session()->get('office_id');
 
-        if (! $ticket || $ticket->office_id !== $officeId) {
-            return redirect()->back()->with('error', 'Ticket not available for your office.');
+        if (! $ticket || ! $this->canAccess($ticket->department_id)) {
+            return redirect()->back()->with('error', 'Concern not available for your department.');
         }
 
         $rules = [
-            'message' => 'required|min_length[3]',
+            'message'  => 'required|min_length[3]',
             'reply_to' => 'permit_empty|is_natural_no_zero',
         ];
 
@@ -189,84 +272,27 @@ class AgentController extends BaseController
 
         $this->replyModel->insert([
             'ticket_id' => $ticket->id,
-            'user_id' => session()->get('user_id'),
-            'message' => $this->request->getPost('message'),
-            'reply_to' => $replyTo,
+            'user_id'   => session()->get('user_id'),
+            'message'   => $this->request->getPost('message'),
+            'reply_to'  => $replyTo,
         ]);
 
-        // Notify the student about the new reply
+        if (! $ticket->first_response_at) {
+            $this->ticketModel->update($ticket->id, [
+                'first_response_at' => date('Y-m-d H:i:s'),
+            ]);
+        }
+
         $this->notificationModel->insert([
-            'user_id' => $ticket->requester_id,
+            'user_id'   => $ticket->requester_id,
             'ticket_id' => $ticket->id,
-            'message' => 'New reply added to your ticket "' . $ticket->subject . '"',
-            'is_read' => false,
+            'message'   => 'New reply added to your concern "' . $ticket->subject . '"',
+            'is_read'   => false,
         ]);
 
         return redirect()->back()->with('success', 'Reply added successfully.');
     }
 
-    public function reassign($id)
-    {
-        if ($this->request->getMethod() !== 'POST') {
-            return redirect()->back();
-        }
-
-        $rules = [
-            'resolver_id' => 'required|integer',
-        ];
-
-        if (! $this->validate($rules)) {
-            return redirect()->back()->withInput()->with('error', 'Please select a valid agent.');
-        }
-
-        $ticket = $this->ticketModel->find((int) $id);
-        $officeId = session()->get('office_id');
-        $newResolverId = (int) $this->request->getPost('resolver_id');
-
-        if (! $ticket || $ticket->office_id !== $officeId) {
-            return redirect()->back()->with('error', 'Ticket not found or belongs to another office.');
-        }
-
-        // Check if the new resolver is an agent in the same office
-        $newResolver = $this->userModel->find($newResolverId);
-        if (! $newResolver || $newResolver->role !== 'agent' || $newResolver->office_id !== $officeId) {
-            return redirect()->back()->with('error', 'Selected agent is not valid or belongs to another office.');
-        }
-
-        $this->ticketModel->update($ticket->id, [
-            'resolver_id' => $newResolverId,
-        ]);
-
-        // Add to assignees if not already
-        if (! $this->ticketAssigneeModel->isUserAssignedToTicket($ticket->id, $newResolverId)) {
-            $this->ticketAssigneeModel->assignUserToTicket($ticket->id, $newResolverId, session()->get('user_id'));
-        }
-
-        // Notify the student about reassignment
-        $this->notificationModel->insert([
-            'user_id' => $ticket->requester_id,
-            'ticket_id' => $ticket->id,
-            'message' => 'Your ticket "' . $ticket->subject . '" has been reassigned to another agent.',
-            'is_read' => false,
-        ]);
-
-        // Notify the new agent about assignment
-        if ($newResolverId !== session()->get('user_id')) {
-            $this->notificationModel->insert([
-                'user_id' => $newResolverId,
-                'ticket_id' => $ticket->id,
-                'message' => 'Ticket "' . $ticket->subject . '" has been reassigned to you.',
-                'is_read' => false,
-            ]);
-        }
-
-        return redirect()->back()->with('success', 'Ticket reassigned successfully.');
-    }
-
-    /**
-     * @param object[] $replies
-     * @return object[]
-     */
     private function buildReplyTree(array $replies): array
     {
         $replyMap = [];

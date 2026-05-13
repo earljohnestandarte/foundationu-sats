@@ -4,34 +4,35 @@ namespace App\Database\Migrations;
 
 use CodeIgniter\Database\Migration;
 
-class CreateTicketAssigneesTable2 extends Migration
+class CreateTicketAssigneesTable extends Migration
 {
     public function up()
     {
-        // Drop table if exists
-        $this->forge->dropTable('ticket_assignees', true);
+        if ($this->db->tableExists('ticket_assignees')) {
+            $this->forge->dropTable('ticket_assignees', true);
+        }
 
         $this->forge->addField([
             'id' => [
-                'type' => 'INT',
-                'constraint' => 11,
-                'unsigned' => true,
+                'type'           => 'INT',
+                'constraint'     => 11,
+                'unsigned'       => true,
                 'auto_increment' => true,
             ],
             'ticket_id' => [
-                'type' => 'INT',
+                'type'       => 'INT',
                 'constraint' => 11,
-                'unsigned' => true,
+                'unsigned'   => true,
             ],
             'user_id' => [
-                'type' => 'INT',
+                'type'       => 'INT',
                 'constraint' => 11,
-                'unsigned' => true,
+                'unsigned'   => true,
             ],
             'assigned_by' => [
-                'type' => 'INT',
+                'type'       => 'INT',
                 'constraint' => 11,
-                'unsigned' => true,
+                'unsigned'   => true,
             ],
             'assigned_at' => [
                 'type' => 'DATETIME',

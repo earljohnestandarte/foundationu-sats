@@ -23,6 +23,12 @@ class AuthController extends BaseController
             if ($role === 'agent') {
                 return redirect()->to(site_url('agent/dashboard'));
             }
+            if ($role === 'sao') {
+                return redirect()->to(site_url('sao/dashboard'));
+            }
+            if ($role === 'admin') {
+                return redirect()->to(site_url('sao/dashboard'));
+            }
             if ($role === 'student') {
                 return redirect()->to(site_url('student/dashboard'));
             }
@@ -60,11 +66,11 @@ class AuthController extends BaseController
 
         $session = session();
         $session->set([
-            'isLoggedIn' => true,
-            'user_id' => $user->id,
-            'user_role' => $user->role,
-            'office_id' => $user->office_id,
-            'user_name' => $user->name,
+            'isLoggedIn'    => true,
+            'user_id'       => $user->id,
+            'user_role'     => $user->role,
+            'department_id' => $user->department_id,
+            'user_name'     => $user->name,
         ]);
 
         return redirect()->to(site_url('/'));

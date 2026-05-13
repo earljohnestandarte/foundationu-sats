@@ -1,17 +1,17 @@
 <?= $this->extend('layout/main') ?>
 <?php /** @var object[] $tickets */ ?>
-<?php $this->section('title') ?>My Tickets - SATS<?php $this->endSection() ?>
+<?php $this->section('title') ?>My Concerns - SATS<?php $this->endSection() ?>
 <?php $this->section('activeNav') ?>tickets<?php $this->endSection() ?>
 <?php $this->section('content') ?>
 <section class="section-padding">
     <div class="mb-4">
         <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
             <div>
-                <h3 class="fw-bold mb-1" style="color: var(--fu-primary); font-size: 28px;">My Tickets</h3>
-                <p style="color: var(--fu-on-surface-variant);">Track all your support requests.</p>
+                <h3 class="fw-bold mb-1" style="color: var(--fu-primary); font-size: 28px;">My Concerns</h3>
+                <p style="color: var(--fu-on-surface-variant);">Track all your submitted concerns.</p>
             </div>
             <a href="<?= site_url('student/tickets/create') ?>" class="btn btn-fu-primary d-flex align-items-center gap-2">
-                <i class="fas fa-plus"></i> New Ticket
+                <i class="fas fa-plus"></i> Submit Concern
             </a>
         </div>
     </div>
@@ -20,9 +20,9 @@
         <?php if (empty($tickets)): ?>
             <div class="p-5 text-center">
                 <i class="fas fa-inbox fa-3x mb-3" style="color: var(--fu-on-surface-variant);"></i>
-                <h5 class="text-muted mb-2">No tickets yet</h5>
-                <p class="text-muted mb-4">You haven't submitted any support requests yet.</p>
-                <a href="<?= site_url('student/tickets/create') ?>" class="btn btn-fu-primary">Submit your first ticket</a>
+                <h5 class="text-muted mb-2">No concerns yet</h5>
+                <p class="text-muted mb-4">You haven't submitted any concerns yet.</p>
+                <a href="<?= site_url('student/tickets/create') ?>" class="btn btn-fu-primary">Submit your first concern</a>
             </div>
         <?php else: ?>
             <?php foreach ($tickets as $ticket): ?>
@@ -38,8 +38,8 @@
                         <div class="col-md-4">
                             <div class="d-flex flex-wrap align-items-center gap-4 justify-content-end">
                                 <div class="text-end d-none d-sm-block">
-                                    <p class="mb-1 text-uppercase" style="color: var(--fu-on-surface-variant); font-size: 12px;">Office</p>
-                                    <p class="mb-0 fw-semibold" style="color: var(--fu-on-surface);"><?= esc((string)$ticket->office_name) ?></p>
+                                    <p class="mb-1 text-uppercase" style="color: var(--fu-on-surface-variant); font-size: 12px;">Department</p>
+                                    <p class="mb-0 fw-semibold" style="color: var(--fu-on-surface);"><?= esc((string)$ticket->department_name) ?></p>
                                 </div>
                                 <div class="text-end d-none d-sm-block">
                                     <p class="mb-1 text-uppercase" style="color: var(--fu-on-surface-variant); font-size: 12px;">Updated</p>
@@ -50,6 +50,8 @@
                                     $statusBadgeClass = 'open';
                                     if ($ticket->status === 'In Progress') {
                                         $statusBadgeClass = 'in-progress';
+                                    } elseif ($ticket->status === 'Pending') {
+                                        $statusBadgeClass = 'pending';
                                     } elseif ($ticket->status === 'Resolved') {
                                         $statusBadgeClass = 'resolved';
                                     }

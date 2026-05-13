@@ -14,6 +14,7 @@
 
 <body>
     <?php $session = session(); ?>
+    <?php $activeNav = trim((string) $this->renderSection('activeNav')); ?>
 
     <?php if ($session->get('isLoggedIn')) : ?>
         <div class="sidebar-overlay" id="sidebarOverlay"></div>
@@ -32,22 +33,47 @@
 
                 <nav class="pt-3">
                     <?php if ($session->get('user_role') === 'student') : ?>
-                        <a class="nav-item-sidebar <?= $this->renderSection('activeNav') === 'dashboard' ? 'active' : '' ?>" href="<?= site_url('student/dashboard') ?>">
+                        <a class="nav-item-sidebar <?= $activeNav === 'dashboard' ? 'active' : '' ?>" href="<?= site_url('student/dashboard') ?>">
                             <i class="fas fa-tachometer-alt"></i>
                             <span style="font-size: 14px; font-weight: 600;">Dashboard</span>
                         </a>
-                        <a class="nav-item-sidebar <?= $this->renderSection('activeNav') === 'tickets' ? 'active' : '' ?>" href="<?= site_url('student/tickets') ?>">
+                        <a class="nav-item-sidebar <?= $activeNav === 'tickets' ? 'active' : '' ?>" href="<?= site_url('student/tickets') ?>">
                             <i class="fas fa-ticket-alt"></i>
-                            <span style="font-size: 14px; font-weight: 600;">My Tickets</span>
+                            <span style="font-size: 14px; font-weight: 600;">My Concerns</span>
                         </a>
-                        <a class="nav-item-sidebar <?= $this->renderSection('activeNav') === 'create' ? 'active' : '' ?>" href="<?= site_url('student/tickets/create') ?>">
+                        <a class="nav-item-sidebar <?= $activeNav === 'create' ? 'active' : '' ?>" href="<?= site_url('student/tickets/create') ?>">
                             <i class="fas fa-plus-square"></i>
                             <span style="font-size: 14px; font-weight: 600;">Submit Concern</span>
                         </a>
                     <?php elseif ($session->get('user_role') === 'agent') : ?>
-                        <a class="nav-item-sidebar <?= $this->renderSection('activeNav') === 'dashboard' ? 'active' : '' ?>" href="<?= site_url('agent/dashboard') ?>">
+                        <a class="nav-item-sidebar <?= $activeNav === 'agent' ? 'active' : '' ?>" href="<?= site_url('agent/dashboard') ?>">
                             <i class="fas fa-tachometer-alt"></i>
                             <span style="font-size: 14px; font-weight: 600;">Dashboard</span>
+                        </a>
+                    <?php elseif ($session->get('user_role') === 'sao' || $session->get('user_role') === 'admin') : ?>
+                        <a class="nav-item-sidebar <?= $activeNav === 'dashboard' ? 'active' : '' ?>" href="<?= site_url('sao/dashboard') ?>">
+                            <i class="fas fa-tachometer-alt"></i>
+                            <span style="font-size: 14px; font-weight: 600;">Dashboard</span>
+                        </a>
+                        <a class="nav-item-sidebar <?= $activeNav === 'agent' ? 'active' : '' ?>" href="<?= site_url('agent/dashboard') ?>">
+                            <i class="fas fa-ticket-alt"></i>
+                            <span style="font-size: 14px; font-weight: 600;">Concerns</span>
+                        </a>
+                        <a class="nav-item-sidebar <?= $activeNav === 'reports' ? 'active' : '' ?>" href="<?= site_url('sao/reports') ?>">
+                            <i class="fas fa-chart-bar"></i>
+                            <span style="font-size: 14px; font-weight: 600;">Reports</span>
+                        </a>
+                        <a class="nav-item-sidebar <?= $activeNav === 'users' ? 'active' : '' ?>" href="<?= site_url('sao/users') ?>">
+                            <i class="fas fa-users"></i>
+                            <span style="font-size: 14px; font-weight: 600;">Users</span>
+                        </a>
+                        <a class="nav-item-sidebar <?= $activeNav === 'departments' ? 'active' : '' ?>" href="<?= site_url('sao/departments') ?>">
+                            <i class="fas fa-university"></i>
+                            <span style="font-size: 14px; font-weight: 600;">Departments</span>
+                        </a>
+                        <a class="nav-item-sidebar <?= $activeNav === 'templates' ? 'active' : '' ?>" href="<?= site_url('sao/templates') ?>">
+                            <i class="fas fa-reply-all"></i>
+                            <span style="font-size: 14px; font-weight: 600;">Templates</span>
                         </a>
                     <?php endif; ?>
 
@@ -55,17 +81,25 @@
                         <i class="fas fa-book"></i>
                         <span style="font-size: 14px; font-weight: 600;">Knowledge Base</span>
                     </a>
-                    <a class="nav-item-sidebar" href="#">
-                        <i class="fas fa-university"></i>
-                        <span style="font-size: 14px; font-weight: 600;">Offices</span>
+                    <?php if ($session->get('user_role') === 'student') : ?>
+                    <a class="nav-item-sidebar <?= $activeNav === 'archived' ? 'active' : '' ?>" href="<?= site_url('student/tickets/archived') ?>">
+                        <i class="fas fa-archive"></i>
+                        <span style="font-size: 14px; font-weight: 600;">Archived</span>
                     </a>
+                    <?php endif; ?>
+                    <?php if ($session->get('user_role') === 'agent') : ?>
+                    <a class="nav-item-sidebar <?= $activeNav === 'archived' ? 'active' : '' ?>" href="<?= site_url('agent/archived') ?>">
+                        <i class="fas fa-archive"></i>
+                        <span style="font-size: 14px; font-weight: 600;">Archived</span>
+                    </a>
+                    <?php endif; ?>
                 </nav>
             </div>
 
             <div class="mt-auto px-2 py-3" style="border-top: 1px solid var(--fu-outline-variant);">
                 <?php if ($session->get('user_role') === 'student') : ?>
                     <a href="<?= site_url('student/tickets/create') ?>" class="btn btn-fu-primary w-100 mb-3 d-flex align-items-center justify-content-center gap-2">
-                        <i class="fas fa-plus"></i> New Ticket
+                        <i class="fas fa-plus"></i> Submit Concern
                     </a>
                 <?php endif; ?>
 
@@ -91,7 +125,7 @@
                         </button>
                         <h2 class="fw-bold mb-0" style="color: #ffffff; font-size: 20px;">SATS</h2>
                         <div class="mx-2 d-none d-md-block" style="width: 1px; height: 24px; background-color: rgba(255,255,255,0.3);"></div>
-                        <p class="mb-0 d-none d-md-block" style="color: #ffffff;"><?= $session->get('user_role') === 'student' ? 'Student Dashboard' : 'Agent Dashboard' ?></p>
+                        <p class="mb-0 d-none d-md-block" style="color: #ffffff;"><?= match($session->get('user_role')) { 'student' => 'Student Dashboard', 'agent' => 'Agent Dashboard', 'sao' => 'SAO Dashboard', 'admin' => 'Admin Dashboard', default => 'Dashboard' } ?></p>
                     </div>
 
                     <div class="d-flex align-items-center gap-3">

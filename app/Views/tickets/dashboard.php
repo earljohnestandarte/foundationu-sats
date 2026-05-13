@@ -9,7 +9,7 @@
     <div class="mb-4">
         <?php $session = session(); ?>
         <h3 class="fw-bold mb-1" style="color: var(--fu-primary); font-size: 28px;">Welcome back, <?= esc((string)$session->get('user_name') ?? 'Student') ?></h3>
-        <p style="color: var(--fu-on-surface-variant); font-size: 18px;">Here is a summary of your active support requests.</p>
+        <p style="color: var(--fu-on-surface-variant); font-size: 18px;">Here is a summary of your active concerns.</p>
     </div>
     
     <div class="row g-4 mb-4">
@@ -21,7 +21,7 @@
                     </div>
                     <span class="fw-bold" style="color: var(--fu-primary); font-size: 24px;"><?= $activeCount ?></span>
                 </div>
-                <p class="mb-0 text-uppercase fw-semibold" style="color: var(--fu-on-surface-variant); font-size: 12px; letter-spacing: 0.05em;">Active Tickets</p>
+                <p class="mb-0 text-uppercase fw-semibold" style="color: var(--fu-on-surface-variant); font-size: 12px; letter-spacing: 0.05em;">Active Concerns</p>
             </div>
         </div>
         
@@ -52,7 +52,7 @@
     
     <div class="card-fu mb-4">
         <div class="d-flex justify-content-between align-items-center px-4 py-3" style="border-bottom: 1px solid var(--fu-outline-variant); background-color: var(--fu-surface-container-low);">
-            <h4 class="fw-semibold mb-0" style="color: var(--fu-primary); font-size: 20px;">Active Tickets</h4>
+            <h4 class="fw-semibold mb-0" style="color: var(--fu-primary); font-size: 20px;">Active Concerns</h4>
             <div class="d-flex gap-2">
                 <button class="d-flex align-items-center gap-2 px-3 py-2 bg-white border rounded text-sm fw-semibold" style="border-color: var(--fu-outline-variant);">
                     <i class="fas fa-filter" style="font-size: 18px;"></i> Filter
@@ -63,8 +63,8 @@
         <?php if (empty($tickets)): ?>
             <div class="p-5 text-center">
                 <i class="fas fa-inbox fa-3x mb-3" style="color: var(--fu-on-surface-variant);"></i>
-                <h5 class="text-muted mb-2">No active tickets</h5>
-                <p class="text-muted">You don't have any active support requests at the moment.</p>
+                <h5 class="text-muted mb-2">No active concerns</h5>
+                <p class="text-muted">You don't have any active concerns at the moment.</p>
             </div>
         <?php else: ?>
             <?php foreach ($tickets as $ticket): ?>
@@ -88,6 +88,8 @@
                                     $statusBadgeClass = 'open';
                                     if ($ticket->status === 'In Progress') {
                                         $statusBadgeClass = 'in-progress';
+                                    } elseif ($ticket->status === 'Pending') {
+                                        $statusBadgeClass = 'pending';
                                     } elseif ($ticket->status === 'Resolved') {
                                         $statusBadgeClass = 'resolved';
                                     }
@@ -105,7 +107,7 @@
         <?php endif; ?>
         
         <div class="px-4 py-3 text-center" style="background-color: var(--fu-surface-container-low);">
-            <a href="<?= site_url('student/tickets') ?>" class="text-decoration-none fw-semibold" style="color: var(--fu-primary);">View All Historical Tickets</a>
+            <a href="<?= site_url('student/tickets') ?>" class="text-decoration-none fw-semibold" style="color: var(--fu-primary);">View All Concerns</a>
         </div>
     </div>
     
@@ -129,7 +131,7 @@
                     <i class="fas fa-lightbulb" style="font-size: 36px;"></i>
                     <h5 class="fw-semibold mb-0" style="font-size: 20px;">Knowledge Base Tip</h5>
                 </div>
-                <p class="mb-4">Did you know you can track your graduation progress directly through the 'Offices' portal? Check the Registrar's section for your latest degree audit.</p>
+                <p class="mb-4">Did you know you can track your graduation progress directly through the Departments portal? Check the Registrar's section for your latest degree audit.</p>
                 <a href="#" class="text-decoration-none d-flex align-items-center gap-2 fw-bold" style="color: var(--fu-primary-fixed);">
                     Explore Knowledge Base
                     <i class="fas fa-arrow-right"></i>

@@ -2,7 +2,13 @@
 <?php /** @var object $ticket */ ?>
 <?php /** @var object[] $replies */ ?>
 <?php /** @var object[] $agents */ ?>
-<?php $this->section('title') ?>Ticket #<?= esc((string) $ticket->id) ?><?php $this->endSection() ?>
+<?php /** @var array $timeline */ ?>
+<?php /** @var object|null $feedback */ ?>
+<?php $this->section('title') ?>Concern #<?= esc((string) $ticket->id) ?><?php $this->endSection() ?>
+<?php $this->section('activeNav') ?>agent<?php $this->endSection() ?>
+<?php $this->section('css') ?>
+<link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet" />
+<?php $this->endSection() ?>
 <?php $this->section('content') ?>
 <section class="section-padding">
     <div class="mb-4">
@@ -12,13 +18,13 @@
             </a>
         </div>
         <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
-            <h3 class="fw-bold mb-0">Ticket #FAU-<?= str_pad(esc((string)$ticket->id), 4, '0', STR_PAD_LEFT) ?>: <?= esc((string) $ticket->subject) ?></h3>
+            <h3 class="fw-bold mb-0">#FAU-<?= str_pad(esc((string)$ticket->id), 4, '0', STR_PAD_LEFT) ?>: <?= esc((string) $ticket->subject) ?></h3>
             <form action="<?= site_url('agent/updateStatus/' . $ticket->id) ?>" method="post" class="d-flex gap-2 align-items-center">
                 <?= csrf_field() ?>
                 <select name="status" class="form-select min-width-180">
                     <option value="Open" <?= $ticket->status === 'Open' ? 'selected' : '' ?>>Open</option>
                     <option value="In Progress" <?= $ticket->status === 'In Progress' ? 'selected' : '' ?>>In Progress</option>
-                    <option value="Waiting on Student" <?= $ticket->status === 'Waiting on Student' ? 'selected' : '' ?>>Waiting on Student</option>
+                    <option value="Pending" <?= $ticket->status === 'Pending' ? 'selected' : '' ?>>Pending</option>
                     <option value="Resolved" <?= $ticket->status === 'Resolved' ? 'selected' : '' ?>>Resolved</option>
                     <option value="Closed" <?= $ticket->status === 'Closed' ? 'selected' : '' ?>>Closed</option>
                 </select>
@@ -29,6 +35,29 @@
 
     <div class="row g-4">
         <div class="col-md-8">
+            <?php if ($ticket->sla_due_at): ?>
+            <?php
+                $slaDue = strtotime($ticket->sla_due_at);
+                $now = time();
+                $slaClass = $ticket->first_response_at ? 'sla-met' : ($now > $slaDue ? 'sla-breached' : 'sla-ok');
+                $slaLabel = $ticket->first_response_at ? 'SLA Met' : ($now > $slaDue ? 'SLA Breached' : 'Within SLA');
+            ?>
+            <div class="card-fu mb-3">
+                <div class="p-3 d-flex align-items-center gap-3">
+                    <div class="sla-indicator <?= $slaClass ?>"></div>
+                    <div>
+                        <span class="fw-semibold"><?= $slaLabel ?></span>
+                        <small class="d-block" style="color: var(--fu-on-surface-variant);">
+                            Response due by <?= date('M j, g:i A', $slaDue) ?>
+                            <?php if ($ticket->first_response_at): ?>
+                                | First response: <?= date('M j, g:i A', strtotime($ticket->first_response_at)) ?>
+                            <?php endif; ?>
+                        </small>
+                    </div>
+                </div>
+            </div>
+            <?php endif; ?>
+
             <div class="card-fu mb-4">
                 <div class="p-4">
                     <div class="mb-3">
@@ -51,20 +80,31 @@
                     <?php else: ?>
                         <?php function renderReplies(array $replies, int $depth = 0, $ticketId)
                         {
-                            foreach ($replies as $reply): ?>
+                            foreach ($replies as $reply):
+                                $roleLabel = ($reply->author_role ?? '') === 'agent' ? 'Agent' : (($reply->author_role ?? '') === 'admin' ? 'Admin' : 'Student');
+                                $roleBadgeClass = ($reply->author_role ?? '') === 'agent' ? 'agent' : (($reply->author_role ?? '') === 'admin' ? 'admin' : 'student');
+                            ?>
                                 <div class="reply-bubble<?= $depth ? ' depth-1' : '' ?>">
                                     <div class="d-flex justify-content-between align-items-start mb-2">
                                         <div class="d-flex align-items-center gap-2">
-                                            <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 36px; height: 36px; background-color: var(--fu-surface-container-low);">
+                                            <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; background-color: var(--fu-surface-container-low);">
                                                 <i class="fas fa-user" style="color: var(--fu-on-surface-variant);"></i>
                                             </div>
                                             <div>
-                                                <strong class="d-block"><?= esc((string) $reply->author_name) ?></strong>
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <strong><?= esc((string) $reply->author_name) ?></strong>
+                                                    <span class="badge-fu signature-badge <?= $roleBadgeClass ?>"><?= $roleLabel ?></span>
+                                                </div>
                                                 <small><?= date('M j, Y g:i A', strtotime($reply->created_at)) ?></small>
                                             </div>
                                         </div>
                                     </div>
-                                    <div style="line-height: 1.7;"><?= nl2br(esc((string) $reply->message)) ?></div>
+                                    <div class="reply-content"><?= ($reply->message) ?></div>
+                                    <div class="signature-line mt-2 pt-2" style="border-top: 1px solid var(--fu-outline-variant);">
+                                        <small style="color: var(--fu-on-surface-variant);">
+                                            <i class="fas fa-building me-1"></i> Foundation University — Student Affairs Ticketing System
+                                        </small>
+                                    </div>
                                     <button type="button" class="btn btn-sm btn-link text-decoration-none reply-toggle mt-2" data-target="reply-form-<?= $reply->id ?>">
                                         <i class="fas fa-reply me-1"></i> Reply
                                     </button>
@@ -73,9 +113,10 @@
                                         <?= csrf_field() ?>
                                         <?= form_hidden('reply_to', $reply->id) ?>
                                         <div class="mb-2">
-                                            <textarea name="message" class="form-control" rows="3" placeholder="Write a reply..."></textarea>
+                                            <div class="quill-editor" id="quill-<?= $reply->id ?>"></div>
+                                            <textarea name="message" class="quill-hidden" style="display:none;"></textarea>
                                         </div>
-                                        <button type="submit" class="btn btn-fu-primary btn-sm">Post Reply</button>
+                                        <button type="submit" class="btn btn-fu-primary btn-sm quill-submit">Post Reply</button>
                                         <?= form_close() ?>
                                     </div>
                                     <?php if (! empty($reply->children)): ?>
@@ -92,20 +133,40 @@
                     <?= form_open('agent/addReply/' . $ticket->id) ?>
                     <?= csrf_field() ?>
                     <div class="mb-3">
-                        <textarea name="message" class="form-control" rows="4" placeholder="Write your message..." required></textarea>
+                        <div class="quill-editor" id="quill-main"></div>
+                        <textarea name="message" class="quill-hidden" style="display:none;"></textarea>
                     </div>
-                    <button type="submit" class="btn btn-fu-primary d-flex align-items-center gap-2">
-                        <i class="fas fa-paper-plane"></i> Send Reply
-                    </button>
+                    <div class="d-flex justify-content-end gap-2">
+                        <button type="button" class="btn btn-outline-secondary d-flex align-items-center gap-2 ai-suggest-btn" data-ticket="<?= $ticket->id ?>">
+                            <i class="fas fa-magic"></i> AI Suggest
+                        </button>
+                        <button type="submit" class="btn btn-fu-primary d-flex align-items-center gap-2 quill-submit">
+                            <i class="fas fa-paper-plane"></i> Send Reply
+                        </button>
+                    </div>
                     <?= form_close() ?>
                 </div>
             </div>
         </div>
 
         <div class="col-md-4">
+            <?php if (! $ticket->is_escalated): ?>
+            <div class="card-fu mb-4">
+                <div class="px-4 py-3" style="background-color:#fef2f2;border-bottom:1px solid var(--fu-error);">
+                    <h6 class="fw-semibold mb-0" style="color:var(--fu-error);"><i class="fas fa-flag me-2"></i>Escalate Concern</h6>
+                </div>
+                <div class="p-3">
+                    <form action="<?= site_url('agent/escalate/'.$ticket->id) ?>" method="post">
+                        <?= csrf_field() ?>
+                        <textarea name="reason" class="form-control mb-2" rows="2" placeholder="Reason for escalation (optional)"></textarea>
+                        <button type="submit" class="btn btn-outline-danger w-100 btn-sm">Escalate to Administration</button>
+                    </form>
+                </div>
+            </div>
+            <?php endif; ?>
             <div class="card-fu mb-4">
                 <div class="d-flex justify-between items-center px-4 py-3 card-header-section">
-                    <h6 class="fw-semibold mb-0">Ticket Details</h6>
+                    <h6 class="fw-semibold mb-0">Concern Details</h6>
                 </div>
                 <div class="p-4">
                     <div class="mb-3">
@@ -116,11 +177,9 @@
                         <label class="text-uppercase small fw-semibold mb-1 d-block">Status</label>
                         <?php
                         $statusBadgeClass = 'open';
-                        if ($ticket->status === 'In Progress') {
-                            $statusBadgeClass = 'in-progress';
-                        } elseif ($ticket->status === 'Resolved') {
-                            $statusBadgeClass = 'resolved';
-                        }
+                        if ($ticket->status === 'In Progress') $statusBadgeClass = 'in-progress';
+                        elseif ($ticket->status === 'Pending') $statusBadgeClass = 'pending';
+                        elseif ($ticket->status === 'Resolved') $statusBadgeClass = 'resolved';
                         ?>
                         <span class="badge-fu <?= $statusBadgeClass ?>"><?= esc((string)$ticket->status) ?></span>
                     </div>
@@ -137,9 +196,15 @@
                         <?php endif; ?>
                     </div>
                     <div class="mb-3">
-                        <label class="text-uppercase small fw-semibold mb-1 d-block">Office</label>
-                        <div><?= esc((string) $ticket->office_name) ?></div>
+                        <label class="text-uppercase small fw-semibold mb-1 d-block">Department</label>
+                        <div><?= esc((string) $ticket->department_name) ?></div>
                     </div>
+                    <?php if (! empty($ticket->concern_type)): ?>
+                    <div class="mb-3">
+                        <label class="text-uppercase small fw-semibold mb-1 d-block">Type of Concern</label>
+                        <div><?= esc((string) $ticket->concern_type) ?></div>
+                    </div>
+                    <?php endif; ?>
                     <div class="mb-3">
                         <label class="text-uppercase small fw-semibold mb-1 d-block">Assigned To</label>
                         <div><?= $ticket->resolver_name ? esc((string) $ticket->resolver_name) : '<span class="text-muted-unassigned">Unassigned</span>' ?></div>
@@ -148,61 +213,114 @@
                         <label class="text-uppercase small fw-semibold mb-1 d-block">Created</label>
                         <div><?= date('M j, Y g:i A', strtotime($ticket->created_at)) ?></div>
                     </div>
+                    <?php if ($ticket->resolved_at): ?>
+                    <div class="mb-3">
+                        <label class="text-uppercase small fw-semibold mb-1 d-block">Resolved</label>
+                        <div style="color: var(--fu-success);"><?= date('M j, Y g:i A', strtotime($ticket->resolved_at)) ?></div>
+                    </div>
+                    <?php endif; ?>
                 </div>
             </div>
 
-            <?php
-            $assignees = $assignees ?? [];
-            $isAssigned = false;
-            foreach ($assignees as $assignee) {
-                if ($assignee->user_id == session()->get('user_id')) {
-                    $isAssigned = true;
-                    break;
-                }
-            }
-            ?>
-            <?php if (! $isAssigned): ?>
-                <div class="card-fu mb-4">
-                    <div class="p-4">
-                        <p class="mb-3 fw-medium">Assign this ticket to yourself to start working on it.</p>
-                        <form action="<?= site_url('agent/assign/' . $ticket->id) ?>" method="post">
-                            <?= csrf_field() ?>
-                            <button type="submit" class="btn btn-fu-primary w-100 d-flex align-items-center justify-content-center gap-2">
-                                <i class="fas fa-user-check"></i> Assign to Me
-                            </button>
-                        </form>
-                    </div>
+            <div class="card-fu mb-4">
+                <div class="d-flex justify-between items-center px-4 py-3 card-header-section">
+                    <h6 class="fw-semibold mb-0">Assign Concern</h6>
                 </div>
-            <?php endif ?>
-
-            <?php if (count($agents) > 1): ?>
-                <div class="card-fu">
-                    <div class="d-flex justify-between items-center px-4 py-3 card-header-section">
-                        <h6 class="fw-semibold mb-0">Reassign Ticket</h6>
-                    </div>
-                    <div class="p-4">
-                        <form action="<?= site_url('agent/reassign/' . $ticket->id) ?>" method="post">
-                            <?= csrf_field() ?>
-                            <div class="mb-3">
-                                <label for="resolver_id" class="form-label fw-semibold">Assign to Agent</label>
-                                <select name="resolver_id" id="resolver_id" class="form-select" required>
-                                    <option value="">Select an agent...</option>
-                                    <?php foreach ($agents as $agent): ?>
+                <div class="p-4">
+                    <form action="<?= site_url('agent/assign/' . $ticket->id) ?>" method="post">
+                        <?= csrf_field() ?>
+                        <div class="mb-3">
+                            <label for="resolver_id" class="form-label fw-semibold">Assign to Agent</label>
+                            <select name="resolver_id" id="resolver_id" class="form-select" required>
+                                <option value="">Select an agent...</option>
+                                <option value="<?= session()->get('user_id') ?>">Assign to me</option>
+                                <?php foreach ($agents as $agent): ?>
+                                    <?php if ($agent->id != session()->get('user_id')): ?>
                                         <option value="<?= $agent->id ?>" <?= $ticket->resolver_id == $agent->id ? 'selected' : '' ?>>
                                             <?= esc((string) $agent->name) ?>
                                         </option>
-                                    <?php endforeach ?>
-                                </select>
+                                    <?php endif; ?>
+                                <?php endforeach ?>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-fu-primary w-100">Assign</button>
+                    </form>
+                </div>
+            </div>
+
+            <?php if (! empty($timeline)): ?>
+            <div class="card-fu mb-4">
+                <div class="d-flex justify-between items-center px-4 py-3 card-header-section">
+                    <h6 class="fw-semibold mb-0">Timeline</h6>
+                </div>
+                <div class="p-3">
+                    <div class="timeline-list">
+                        <?php foreach ($timeline as $event): ?>
+                        <div class="timeline-item <?= $event['type'] ?>">
+                            <div class="timeline-dot"></div>
+                            <div class="timeline-content">
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="fas <?= $event['icon'] ?> timeline-icon"></i>
+                                    <span><?= $event['label'] ?></span>
+                                </div>
+                                <small style="color: var(--fu-on-surface-variant);"><?= date('M j, g:i A', strtotime($event['timestamp'])) ?></small>
                             </div>
-                            <button type="submit" class="btn btn-reassign w-100">Reassign Ticket</button>
-                        </form>
+                        </div>
+                        <?php endforeach; ?>
                     </div>
                 </div>
-            <?php endif ?>
+            </div>
+            <?php endif; ?>
+
+            <?php if ($feedback): ?>
+            <div class="card-fu mb-4">
+                <div class="d-flex justify-between items-center px-4 py-3 card-header-section">
+                    <h6 class="fw-semibold mb-0">Student Rating</h6>
+                </div>
+                <div class="p-4 text-center">
+                    <div class="star-display mb-2">
+                        <?php for ($i = 1; $i <= 5; $i++): ?>
+                            <i class="fas fa-star <?= $i <= $feedback->rating ? 'star-filled' : 'star-empty' ?>"></i>
+                        <?php endfor; ?>
+                    </div>
+                    <?php if ($feedback->comment): ?>
+                        <p class="mb-0" style="color: var(--fu-on-surface-variant); font-style: italic;">"<?= esc($feedback->comment) ?>"</p>
+                    <?php endif; ?>
+                </div>
+            </div>
+            <?php endif; ?>
         </div>
     </div>
 </section>
 <?= $this->endSection() ?>
 <?php $this->section('scripts') ?>
+<script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
 <script src="<?= base_url('assets/js/ticket-view.js') ?>"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.quill-editor').forEach(function (el) {
+            var quill = new Quill(el, {
+                theme: 'snow',
+                modules: { toolbar: [['bold','italic','underline'], [{list:'ordered'},{list:'bullet'}], ['link']] },
+                placeholder: 'Write your message...',
+            });
+            el.__quill = quill;
+            var form = el.closest('form');
+            var hidden = form.querySelector('.quill-hidden');
+            form.addEventListener('submit', function () {
+                hidden.value = quill.root.innerHTML;
+            });
+        });
+        document.querySelectorAll('.quill-submit').forEach(function (btn) {
+            btn.addEventListener('click', function (e) {
+                var form = btn.closest('form');
+                var quill = form.querySelector('.ql-editor');
+                if (quill && quill.innerHTML.trim() === '<p><br></p>') {
+                    e.preventDefault();
+                    alert('Please enter a message.');
+                }
+            });
+        });
+    });
+</script>
 <?php $this->endSection() ?>

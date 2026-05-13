@@ -15,19 +15,29 @@ class UserModel extends Model
         'email',
         'password',
         'role',
-        'office_id',
+        'department_id',
     ];
     protected $useTimestamps = true;
     protected $createdField = 'created_at';
     protected $updatedField = 'updated_at';
 
-    /**
-     * Get all agents for a specific office
-     */
-    public function getAgentsForOffice(int $officeId): array
+    public function getAgentsForDepartment(int $departmentId): array
     {
-        return $this->where('office_id', $officeId)
+        return $this->where('department_id', $departmentId)
             ->where('role', 'agent')
             ->findAll();
+    }
+
+    public function getAllWithDepartments(): array
+    {
+        return $this->select('users.*, departments.name AS department_name')
+            ->join('departments', 'departments.id = users.department_id', 'left')
+            ->orderBy('users.created_at', 'DESC')
+            ->findAll();
+    }
+
+    public function getByRole(string $role): array
+    {
+        return $this->where('role', $role)->findAll();
     }
 }
