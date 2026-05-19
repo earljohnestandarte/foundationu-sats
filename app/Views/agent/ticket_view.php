@@ -59,16 +59,36 @@
             <?php endif; ?>
 
             <div class="card-fu mb-4">
-                <div class="p-4">
+                <div class="p-3">
                     <div class="mb-3">
                         <h6 class="text-uppercase fw-semibold mb-3">Description</h6>
                         <p style="line-height: 1.7;"><?= nl2br(esc((string) $ticket->description)) ?></p>
+                        <?php if (!empty($ticketAttachments)): ?>
+                        <div class="mt-3">
+                            <h6 class="text-uppercase fw-semibold mb-2" style="font-size:12px;">Attachments</h6>
+                            <div class="fu-attachments">
+                                <?php foreach ($ticketAttachments as $att): ?>
+                                <?php $isImg = in_array($att['mime_type'], ['image/jpeg','image/png','image/gif','image/webp']); ?>
+                                <a href="<?= site_url('attachment/download/' . $att['id']) ?>" class="fu-attachment-item<?= $isImg ? ' is-image' : '' ?>" target="_blank">
+                                    <?php if ($isImg): ?>
+                                    <img src="<?= site_url('attachment/download/' . $att['id']) ?>" alt="<?= esc($att['original_name']) ?>">
+                                    <?php else: ?>
+                                    <i class="fas <?= \App\Models\AttachmentModel::getIcon($att['mime_type']) ?>"></i>
+                                    <?php endif; ?>
+                                    <span class="fu-att-name"><?= esc($att['original_name']) ?></span>
+                                    <span class="fu-att-size"><?= \App\Models\AttachmentModel::formatSize((int)$att['file_size']) ?></span>
+                                </a>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                        <?php endif; ?>
+
                     </div>
                 </div>
             </div>
 
             <div class="card-fu">
-                <div class="d-flex justify-between items-center px-4 py-3 card-header-section">
+                <div class="d-flex justify-between items-center px-3 py-3 card-header-section">
                     <h6 class="fw-semibold mb-0">Conversation Thread</h6>
                 </div>
                 <div style="padding: 0;">
@@ -83,8 +103,9 @@
                             foreach ($replies as $reply):
                                 $roleLabel = ($reply->author_role ?? '') === 'agent' ? 'Agent' : (($reply->author_role ?? '') === 'admin' ? 'Admin' : 'Student');
                                 $roleBadgeClass = ($reply->author_role ?? '') === 'agent' ? 'agent' : (($reply->author_role ?? '') === 'admin' ? 'admin' : 'student');
+                                $isInternal = !empty($reply->is_internal);
                             ?>
-                                <div class="reply-bubble<?= $depth ? ' depth-1' : '' ?>">
+                                <div class="reply-bubble<?= $depth ? ' depth-1' : '' ?><?= $isInternal ? ' internal' : '' ?>">
                                     <div class="d-flex justify-content-between align-items-start mb-2">
                                         <div class="d-flex align-items-center gap-2">
                                             <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; background-color: var(--fu-surface-container-low);">
@@ -94,12 +115,32 @@
                                                 <div class="d-flex align-items-center gap-2">
                                                     <strong><?= esc((string) $reply->author_name) ?></strong>
                                                     <span class="badge-fu signature-badge <?= $roleBadgeClass ?>"><?= $roleLabel ?></span>
+                                                    <?php if ($isInternal): ?>
+                                                    <span class="internal-badge"><i class="fas fa-lock me-1"></i>Internal Note</span>
+                                                    <?php endif; ?>
                                                 </div>
                                                 <small><?= date('M j, Y g:i A', strtotime($reply->created_at)) ?></small>
                                             </div>
                                         </div>
                                     </div>
                                     <div class="reply-content"><?= ($reply->message) ?></div>
+                                    <?php if (!empty($reply->attachments)): ?>
+                                    <div class="fu-attachments mt-2">
+                                        <?php foreach ($reply->attachments as $att): ?>
+                                        <?php $isImg = in_array($att['mime_type'], ['image/jpeg','image/png','image/gif','image/webp']); ?>
+                                        <a href="<?= site_url('attachment/download/' . $att['id']) ?>" class="fu-attachment-item<?= $isImg ? ' is-image' : '' ?>" target="_blank">
+                                            <?php if ($isImg): ?>
+                                            <img src="<?= site_url('attachment/download/' . $att['id']) ?>" alt="<?= esc($att['original_name']) ?>">
+                                            <?php else: ?>
+                                            <i class="fas <?= \App\Models\AttachmentModel::getIcon($att['mime_type']) ?>"></i>
+                                            <?php endif; ?>
+                                            <span class="fu-att-name"><?= esc($att['original_name']) ?></span>
+                                            <span class="fu-att-size"><?= \App\Models\AttachmentModel::formatSize((int)$att['file_size']) ?></span>
+                                        </a>
+                                        <?php endforeach; ?>
+                                    </div>
+                                    <?php endif; ?>
+
                                     <div class="signature-line mt-2 pt-2" style="border-top: 1px solid var(--fu-outline-variant);">
                                         <small style="color: var(--fu-on-surface-variant);">
                                             <i class="fas fa-building me-1"></i> Foundation University — Student Affairs Ticketing System
@@ -128,13 +169,28 @@
                         renderReplies($replies, 0, $ticket->id); ?>
                     <?php endif ?>
                 </div>
-                <div class="p-4" style="border-top: 1px solid var(--fu-outline-variant);">
-                    <h6 class="fw-semibold mb-3">Add a new reply</h6>
-                    <?= form_open('agent/addReply/' . $ticket->id) ?>
+                <div class="p-3" style="border-top: 1px solid var(--fu-outline-variant);">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <h6 class="fw-semibold mb-0">Add a new reply</h6>
+                        <button type="button" id="internalToggle" class="btn btn-outline-secondary internal-toggle-btn" title="Toggle internal note">
+                            <i class="fas fa-lock me-1"></i> Internal Note
+                        </button>
+                    </div>
+                    <?= form_open('agent/addReply/' . $ticket->id, ['enctype' => 'multipart/form-data', 'id' => 'main-reply-form']) ?>
                     <?= csrf_field() ?>
+                    <input type="hidden" name="is_internal" id="isInternalInput" value="0">
                     <div class="mb-3">
                         <div class="quill-editor" id="quill-main"></div>
                         <textarea name="message" class="quill-hidden" style="display:none;"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <div class="fu-dropzone" id="reply-dropzone">
+                            <input type="file" name="attachments[]" id="reply-attachments" multiple accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.txt">
+                            <i class="fas fa-paperclip fu-dz-icon" style="font-size:20px;"></i>
+                            <p class="fu-dz-label" style="font-size:13px;"><strong>Attach files</strong> or drag &amp; drop</p>
+                            <p class="fu-dz-hint">Max 5 files · 5 MB each</p>
+                        </div>
+                        <div class="fu-file-preview" id="replyFilePreview"></div>
                     </div>
                     <div class="d-flex justify-content-end gap-2">
                         <button type="button" class="btn btn-outline-secondary d-flex align-items-center gap-2 ai-suggest-btn" data-ticket="<?= $ticket->id ?>">
@@ -146,13 +202,14 @@
                     </div>
                     <?= form_close() ?>
                 </div>
+
             </div>
         </div>
 
         <div class="col-md-4">
             <?php if (! $ticket->is_escalated): ?>
             <div class="card-fu mb-4">
-                <div class="px-4 py-3" style="background-color:#fef2f2;border-bottom:1px solid var(--fu-error);">
+                <div class="px-3 py-3" style="background-color:#fef2f2;border-bottom:1px solid var(--fu-error);">
                     <h6 class="fw-semibold mb-0" style="color:var(--fu-error);"><i class="fas fa-flag me-2"></i>Escalate Concern</h6>
                 </div>
                 <div class="p-3">
@@ -165,10 +222,10 @@
             </div>
             <?php endif; ?>
             <div class="card-fu mb-4">
-                <div class="d-flex justify-between items-center px-4 py-3 card-header-section">
+                <div class="d-flex justify-between items-center px-3 py-3 card-header-section">
                     <h6 class="fw-semibold mb-0">Concern Details</h6>
                 </div>
-                <div class="p-4">
+                <div class="p-3">
                     <div class="mb-3">
                         <label class="text-uppercase small fw-semibold mb-1 d-block">Requester</label>
                         <div><?= esc((string) $ticket->requester_name) ?></div>
@@ -223,10 +280,10 @@
             </div>
 
             <div class="card-fu mb-4">
-                <div class="d-flex justify-between items-center px-4 py-3 card-header-section">
+                <div class="d-flex justify-between items-center px-3 py-3 card-header-section">
                     <h6 class="fw-semibold mb-0">Assign Concern</h6>
                 </div>
-                <div class="p-4">
+                <div class="p-3">
                     <form action="<?= site_url('agent/assign/' . $ticket->id) ?>" method="post">
                         <?= csrf_field() ?>
                         <div class="mb-3">
@@ -250,7 +307,7 @@
 
             <?php if (! empty($timeline)): ?>
             <div class="card-fu mb-4">
-                <div class="d-flex justify-between items-center px-4 py-3 card-header-section">
+                <div class="d-flex justify-between items-center px-3 py-3 card-header-section">
                     <h6 class="fw-semibold mb-0">Timeline</h6>
                 </div>
                 <div class="p-3">
@@ -274,10 +331,10 @@
 
             <?php if ($feedback): ?>
             <div class="card-fu mb-4">
-                <div class="d-flex justify-between items-center px-4 py-3 card-header-section">
+                <div class="d-flex justify-between items-center px-3 py-3 card-header-section">
                     <h6 class="fw-semibold mb-0">Student Rating</h6>
                 </div>
-                <div class="p-4 text-center">
+                <div class="p-3 text-center">
                     <div class="star-display mb-2">
                         <?php for ($i = 1; $i <= 5; $i++): ?>
                             <i class="fas fa-star <?= $i <= $feedback->rating ? 'star-filled' : 'star-empty' ?>"></i>
@@ -292,12 +349,13 @@
         </div>
     </div>
 </section>
-<?= $this->endSection() ?>
+<?php $this->endSection() ?>
 <?php $this->section('scripts') ?>
 <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
 <script src="<?= base_url('assets/js/ticket-view.js') ?>"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function () {
+        // ── Quill editors ──────────────────────────────────────
         document.querySelectorAll('.quill-editor').forEach(function (el) {
             var quill = new Quill(el, {
                 theme: 'snow',
@@ -321,6 +379,81 @@
                 }
             });
         });
+
+        // ── Internal note toggle ───────────────────────────────
+        const toggleBtn    = document.getElementById('internalToggle');
+        const internalInput = document.getElementById('isInternalInput');
+        const replyForm    = document.getElementById('main-reply-form');
+        if (toggleBtn) {
+            toggleBtn.addEventListener('click', function () {
+                const active = toggleBtn.classList.toggle('active');
+                internalInput.value = active ? '1' : '0';
+                replyForm.classList.toggle('is-internal', active);
+                toggleBtn.innerHTML = active
+                    ? '<i class="fas fa-lock me-1"></i> Internal Note <i class="fas fa-check ms-1"></i>'
+                    : '<i class="fas fa-lock me-1"></i> Internal Note';
+            });
+        }
+
+        // ── Reply file drop-zone ───────────────────────────────
+        const replyDropzone = document.getElementById('reply-dropzone');
+        const replyFileInput = document.getElementById('reply-attachments');
+        const replyPreview  = document.getElementById('replyFilePreview');
+        let replyFiles = [];
+
+        function formatSize(b) {
+            if (b < 1024) return b + ' B';
+            if (b < 1048576) return (b/1024).toFixed(1) + ' KB';
+            return (b/1048576).toFixed(1) + ' MB';
+        }
+        function getIcon(n) {
+            const e = n.split('.').pop().toLowerCase();
+            if (['jpg','jpeg','png','gif','webp'].includes(e)) return 'fa-file-image';
+            if (e === 'pdf') return 'fa-file-pdf';
+            if (['doc','docx'].includes(e)) return 'fa-file-word';
+            return 'fa-file';
+        }
+        function renderReplyChips() {
+            replyPreview.innerHTML = '';
+            replyFiles.forEach((f, i) => {
+                const chip = document.createElement('div');
+                chip.className = 'fu-file-chip';
+                chip.innerHTML = `<i class="fas ${getIcon(f.name)}"></i><span class="fu-chip-name">${f.name}</span><span class="fu-chip-size">${formatSize(f.size)}</span><button type="button" class="fu-chip-remove" data-idx="${i}"><i class="fas fa-times"></i></button>`;
+                replyPreview.appendChild(chip);
+            });
+            const dt = new DataTransfer();
+            replyFiles.forEach(f => dt.items.add(f));
+            replyFileInput.files = dt.files;
+        }
+        if (replyPreview) {
+            replyPreview.addEventListener('click', e => {
+                const btn = e.target.closest('.fu-chip-remove');
+                if (!btn) return;
+                replyFiles.splice(parseInt(btn.dataset.idx), 1);
+                renderReplyChips();
+            });
+        }
+        if (replyFileInput) {
+            replyFileInput.addEventListener('change', () => {
+                Array.from(replyFileInput.files).forEach(f => {
+                    if (replyFiles.length < 5 && f.size <= 5*1024*1024) replyFiles.push(f);
+                });
+                renderReplyChips();
+            });
+        }
+        if (replyDropzone) {
+            replyDropzone.addEventListener('dragover', e => { e.preventDefault(); replyDropzone.classList.add('dragover'); });
+            replyDropzone.addEventListener('dragleave', () => replyDropzone.classList.remove('dragover'));
+            replyDropzone.addEventListener('drop', e => {
+                e.preventDefault();
+                replyDropzone.classList.remove('dragover');
+                Array.from(e.dataTransfer.files).forEach(f => {
+                    if (replyFiles.length < 5 && f.size <= 5*1024*1024) replyFiles.push(f);
+                });
+                renderReplyChips();
+            });
+        }
     });
 </script>
 <?php $this->endSection() ?>
+

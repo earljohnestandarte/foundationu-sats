@@ -10,5 +10,6 @@ class DatabaseSeeder extends Seeder
     {
         $this->call('App\Database\Seeds\OfficeSeeder');
         $this->call('App\Database\Seeds\UserSeeder');
+        $this->call('App\Database\Seeds\TicketSeeder');
     }
 }

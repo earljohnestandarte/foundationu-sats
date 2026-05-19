@@ -1,0 +1,210 @@
+/* ──────────────────────────────────────────────────
+   FU-SATS Header Live Search — flyout panel styles
+   ────────────────────────────────────────────────── */
+
+/* Floating panel, appended to <body> and positioned absolutely */
+.hs-panel {
+    position: absolute;
+    z-index: 2000;
+    background-color: var(--fu-surface-container-lowest);
+    border: 1.5px solid var(--fu-outline-variant);
+    border-radius: 12px;
+    box-shadow:
+        0 4px 6px -1px rgba(0,0,0,0.08),
+        0 12px 28px -4px rgba(0,0,0,0.14);
+    overflow: hidden;
+    min-width: 360px;
+
+    /* Animation */
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+    transform-origin: top center;
+    transition:
+        opacity 0.18s ease,
+        transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+}
+
+.hs-panel.hs-open {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+}
+
+/* ── Results header ─────────────────────────────── */
+.hs-header {
+    padding: 10px 16px 8px;
+    border-bottom: 1px solid var(--fu-outline-variant);
+    background-color: var(--fu-surface-container-low);
+}
+
+.hs-count {
+    font-size: 12px;
+    color: var(--fu-on-surface-variant);
+}
+
+/* ── Scrollable results list ─────────────────────── */
+.hs-list {
+    max-height: 360px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--fu-outline-variant) transparent;
+}
+
+.hs-list::-webkit-scrollbar { width: 4px; }
+.hs-list::-webkit-scrollbar-thumb {
+    background: var(--fu-outline-variant);
+    border-radius: 99px;
+}
+
+/* ── Individual result row ───────────────────────── */
+.hs-result {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 11px 16px;
+    text-decoration: none;
+    color: var(--fu-on-surface);
+    border-bottom: 1px solid var(--fu-outline-variant);
+    transition: background-color 0.12s ease;
+    cursor: pointer;
+}
+
+.hs-result:last-child { border-bottom: none; }
+
+.hs-result:hover,
+.hs-result:focus {
+    background-color: var(--fu-surface-container-low);
+    outline: none;
+}
+
+.hs-result-left {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;           /* allow text truncation */
+    flex: 1;
+}
+
+.hs-result-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+/* Ticket reference (#FAU-0001) */
+.hs-ref {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--fu-primary);
+    letter-spacing: 0.03em;
+}
+
+/* Ticket subject */
+.hs-subject {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--fu-on-surface);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Department / meta */
+.hs-meta {
+    font-size: 12px;
+    color: var(--fu-on-surface-variant);
+}
+
+/* Date */
+.hs-date {
+    font-size: 11.5px;
+    color: var(--fu-on-surface-variant);
+    white-space: nowrap;
+}
+
+/* Priority dot */
+.hs-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+/* ── "See all results" footer link ───────────────── */
+.hs-footer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--fu-primary);
+    background-color: var(--fu-surface-container-low);
+    border-top: 1px solid var(--fu-outline-variant);
+    text-decoration: none;
+    transition: background-color 0.12s ease;
+}
+
+.hs-footer:hover {
+    background-color: var(--fu-surface-container);
+    color: var(--fu-primary);
+}
+
+/* ── Empty state ─────────────────────────────────── */
+.hs-empty {
+    padding: 32px 16px;
+    text-align: center;
+    color: var(--fu-on-surface-variant);
+}
+
+.hs-empty i {
+    font-size: 28px;
+    margin-bottom: 10px;
+    display: block;
+    opacity: 0.5;
+}
+
+.hs-empty p {
+    font-size: 14px;
+    margin: 0;
+}
+
+/* ── Loading skeletons ───────────────────────────── */
+.hs-loading {
+    padding: 8px 0;
+}
+
+.hs-skeleton {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--fu-outline-variant);
+}
+
+.hs-skeleton:last-child { border-bottom: none; }
+
+@keyframes hs-shimmer {
+    0%   { background-position: -400px 0; }
+    100% { background-position: 400px 0;  }
+}
+
+.hs-skel-ref,
+.hs-skel-subject {
+    border-radius: 4px;
+    background: linear-gradient(
+        90deg,
+        var(--fu-surface-container-high) 25%,
+        var(--fu-surface-container)      50%,
+        var(--fu-surface-container-high) 75%
+    );
+    background-size: 800px 100%;
+    animation: hs-shimmer 1.4s infinite linear;
+}
+
+.hs-skel-ref     { width: 70px;  height: 10px; }
+.hs-skel-subject { width: 200px; height: 14px; }

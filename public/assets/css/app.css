@@ -421,46 +421,63 @@ body {
 .timeline-list {
     position: relative;
     padding-left: 0;
+    margin: 0;
 }
 
 .timeline-item {
+    --timeline-accent: var(--fu-outline);
     display: flex;
     gap: 12px;
-    padding: 8px 0;
+    padding: 10px 0;
     position: relative;
+    align-items: flex-start;
 }
 
 .timeline-item:not(:last-child)::before {
     content: '';
     position: absolute;
-    left: 5px;
-    top: 24px;
-    bottom: 0;
+    left: 6px;
+    top: 20px;
+    bottom: -20px;
     width: 2px;
-    background-color: var(--fu-outline-variant);
+    border-radius: 999px;
+    background: linear-gradient(
+        180deg,
+        var(--timeline-accent) 0%,
+        var(--fu-outline-variant) 68%,
+        var(--fu-outline-variant) 100%
+    );
+    opacity: 0.75;
 }
 
 .timeline-dot {
-    width: 12px;
-    height: 12px;
+    width: 14px;
+    height: 14px;
     border-radius: 50%;
     flex-shrink: 0;
-    margin-top: 4px;
-    background-color: var(--fu-outline);
+    margin-top: 3px;
+    background-color: var(--timeline-accent);
+    border: 2px solid var(--fu-surface-container-lowest);
+    box-shadow: 0 0 0 3px var(--fu-surface-container);
     z-index: 1;
+    transition: transform 0.2s ease;
 }
 
-.timeline-item.created .timeline-dot { background-color: var(--fu-info); }
-.timeline-item.assigned .timeline-dot { background-color: var(--fu-warning); }
-.timeline-item.reply .timeline-dot { background-color: var(--fu-secondary); }
-.timeline-item.resolved .timeline-dot { background-color: var(--fu-success); }
-.timeline-item.archived .timeline-dot { background-color: #6b7280; }
-.timeline-item.escalated .timeline-dot { background-color: var(--fu-error); }
+.timeline-item:hover .timeline-dot {
+    transform: scale(1.08);
+}
+
+.timeline-item.created { --timeline-accent: var(--fu-info); }
+.timeline-item.assigned { --timeline-accent: var(--fu-warning); }
+.timeline-item.reply { --timeline-accent: var(--fu-secondary); }
+.timeline-item.resolved { --timeline-accent: var(--fu-success); }
+.timeline-item.archived { --timeline-accent: #6b7280; }
+.timeline-item.escalated { --timeline-accent: var(--fu-error); }
 
 .timeline-icon {
     font-size: 12px;
     width: 16px;
-    color: var(--fu-on-surface-variant);
+    color: var(--timeline-accent);
 }
 
 .timeline-content {

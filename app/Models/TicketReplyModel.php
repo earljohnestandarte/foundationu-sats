@@ -14,6 +14,7 @@ class TicketReplyModel extends Model
         'user_id',
         'message',
         'reply_to',
+        'is_internal',
     ];
     protected $useTimestamps = true;
     protected $createdField = 'created_at';

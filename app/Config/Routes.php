@@ -42,6 +42,7 @@ $routes->group('sao', ['filter' => ['auth', 'role:sao,admin']], function ($route
     $routes->post('users/create', 'ManagementController::userCreate');
     $routes->post('users/edit/(:num)', 'ManagementController::userEdit/$1');
     $routes->post('users/delete/(:num)', 'ManagementController::userDelete/$1');
+    $routes->post('users/toggle-active/(:num)', 'ManagementController::userToggleActive/$1');
     $routes->get('departments', 'ManagementController::departments');
     $routes->post('departments/create', 'ManagementController::departmentCreate');
     $routes->post('departments/edit/(:num)', 'ManagementController::departmentEdit/$1');
@@ -55,6 +56,16 @@ $routes->group('sao', ['filter' => ['auth', 'role:sao,admin']], function ($route
 $routes->group('notification', ['filter' => 'auth'], function ($routes) {
     $routes->post('markAsRead/(:num)', 'NotificationController::markAsRead/$1');
 });
+
+$routes->group('search', ['filter' => 'auth'], function ($routes) {
+    $routes->get('/', 'SearchController::index');
+});
+
+$routes->group('attachment', ['filter' => 'auth'], function ($routes) {
+    $routes->get('download/(:num)',  'AttachmentController::download/$1');
+    $routes->post('delete/(:num)',   'AttachmentController::delete/$1');
+});
+
 
 $routes->group('ai', ['filter' => 'auth'], function ($routes) {
     $routes->get('suggest/(:num)', 'AiController::suggest/$1');

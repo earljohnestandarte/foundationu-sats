@@ -9,6 +9,9 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600;700&display=swap" rel="stylesheet" />
     <link href="<?= base_url('assets/css/app.css') ?>" rel="stylesheet" />
+    <link href="<?= base_url('assets/css/fu-select.css') ?>" rel="stylesheet" />
+    <link href="<?= base_url('assets/css/header-search.css') ?>" rel="stylesheet" />
+    <link href="<?= base_url('assets/css/attachments.css') ?>" rel="stylesheet" />
     <?= $this->renderSection('css') ?>
 </head>
 
@@ -77,10 +80,10 @@
                         </a>
                     <?php endif; ?>
 
-                    <a class="nav-item-sidebar" href="#">
+                    <span class="nav-item-sidebar" style="opacity: 0.5; cursor: not-allowed;" title="Coming Soon">
                         <i class="fas fa-book"></i>
-                        <span style="font-size: 14px; font-weight: 600;">Knowledge Base</span>
-                    </a>
+                        <span style="font-size: 14px; font-weight: 600;">Knowledge Base <small class="badge bg-secondary ms-1" style="font-size: 10px;">Soon</small></span>
+                    </span>
                     <?php if ($session->get('user_role') === 'student') : ?>
                     <a class="nav-item-sidebar <?= $activeNav === 'archived' ? 'active' : '' ?>" href="<?= site_url('student/tickets/archived') ?>">
                         <i class="fas fa-archive"></i>
@@ -104,14 +107,14 @@
                 <?php endif; ?>
 
                 <nav>
-                    <a class="nav-item-sidebar" href="#">
+                    <span class="nav-item-sidebar" style="opacity: 0.5; cursor: not-allowed;" title="Coming Soon">
                         <i class="fas fa-cog"></i>
-                        <span style="font-size: 14px; font-weight: 600;">Settings</span>
-                    </a>
-                    <a class="nav-item-sidebar" href="#">
+                        <span style="font-size: 14px; font-weight: 600;">Settings <small class="badge bg-secondary ms-1" style="font-size: 10px;">Soon</small></span>
+                    </span>
+                    <span class="nav-item-sidebar" style="opacity: 0.5; cursor: not-allowed;" title="Coming Soon">
                         <i class="fas fa-headset"></i>
-                        <span style="font-size: 14px; font-weight: 600;">Support</span>
-                    </a>
+                        <span style="font-size: 14px; font-weight: 600;">Support <small class="badge bg-secondary ms-1" style="font-size: 10px;">Soon</small></span>
+                    </span>
                 </nav>
             </div>
         </aside>
@@ -130,14 +133,25 @@
 
                     <div class="d-flex align-items-center gap-3">
                         <div class="position-relative d-none d-lg-block">
-                            <i class="fas fa-search position-absolute" style="left: 16px; top: 50%; transform: translateY(-50%); color: rgba(255, 255, 255, 0.85);"></i>
-                            <input type="text" class="search-input" placeholder="Search tickets...">
+                            <?php
+                            $searchAction = match(session()->get('user_role')) {
+                                'student' => site_url('student/tickets'),
+                                'agent'   => site_url('agent/dashboard'),
+                                'sao', 'admin' => site_url('agent/dashboard'),
+                                default   => '#',
+                            };
+                            ?>
+                            <form id="header-search-form" method="get" action="<?= $searchAction ?>" class="d-flex align-items-center" autocomplete="off">
+                                <i class="fas fa-search position-absolute" style="left: 16px; top: 50%; transform: translateY(-50%); color: rgba(255, 255, 255, 0.85); pointer-events:none;"></i>
+                                <input id="header-search-input" type="text" name="q" class="search-input" placeholder="Search tickets…" value="<?= esc((string)(request()->getGet('q') ?? '')) ?>" autocomplete="off" spellcheck="false">
+                            </form>
                         </div>
 
                         <div class="d-flex align-items-center gap-2">
                             <?php
-                            $notificationModel = new \App\Models\NotificationModel();
-                            $unreadCount = $notificationModel->getUnreadCountForUser($session->get('user_id'));
+                            // Notification data pre-loaded by BaseController via view_var()
+                            $unreadCount   = $unreadNotificationCount ?? 0;
+                            $notifications = $unreadNotifications ?? [];
                             ?>
                             <button class="icon-btn" id="notificationDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                                 <i class="fas fa-bell"></i>
@@ -150,10 +164,7 @@
                                 <li>
                                     <h6 class="dropdown-header">Notifications</h6>
                                 </li>
-                                <?php
-                                $notifications = $notificationModel->getUnreadNotificationsForUser($session->get('user_id'));
-                                if (empty($notifications)) :
-                                ?>
+                                <?php if (empty($notifications)) : ?>
                                     <li><a class="dropdown-item text-muted" href="#">No new notifications</a></li>
                                 <?php else : ?>
                                     <?php foreach ($notifications as $notification) : ?>
@@ -165,9 +176,7 @@
                                         </li>
                                     <?php endforeach; ?>
                                 <?php endif; ?>
-                                <li>
-                                    <hr class="dropdown-divider">
-                                </li>
+                                <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item" href="#">View All Notifications</a></li>
                             </ul>
 
@@ -240,6 +249,8 @@
         <?php endif; ?>
     </script>
     <script src="<?= base_url('assets/js/app.js') ?>"></script>
+    <script src="<?= base_url('assets/js/fu-select.js') ?>"></script>
+    <script src="<?= base_url('assets/js/header-search.js') ?>"></script>
     <?= $this->renderSection('scripts') ?>
 </body>
 

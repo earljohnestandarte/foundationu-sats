@@ -8,29 +8,73 @@ use App\Models\TicketReplyModel;
 use App\Models\TicketFeedbackModel;
 use App\Models\NotificationModel;
 use App\Models\UserModel;
+use App\Models\AttachmentModel;
+use App\Libraries\Mailer;
 use CodeIgniter\Controller;
+
 
 class TicketController extends BaseController
 {
-    protected $helpers = ['url', 'form', 'session'];
+    protected $helpers = ['url', 'form', 'session', 'reply'];
     protected $departmentModel;
     protected $ticketModel;
     protected $replyModel;
     protected $feedbackModel;
     protected $notificationModel;
     protected $userModel;
+    protected $attachmentModel;
+    protected $mailer;
+
 
     public function initController($request, $response, $logger)
     {
         parent::initController($request, $response, $logger);
 
-        $this->departmentModel = new DepartmentModel();
-        $this->ticketModel = new TicketModel();
-        $this->replyModel = new TicketReplyModel();
-        $this->feedbackModel = new TicketFeedbackModel();
+        $this->departmentModel  = new DepartmentModel();
+        $this->ticketModel      = new TicketModel();
+        $this->replyModel       = new TicketReplyModel();
+        $this->feedbackModel    = new TicketFeedbackModel();
         $this->notificationModel = new NotificationModel();
-        $this->userModel = new UserModel();
+        $this->userModel        = new UserModel();
+        $this->attachmentModel  = new AttachmentModel();
+        $this->mailer           = new Mailer();
     }
+
+    /** Save uploaded files for a ticket/reply and return stored attachment IDs. */
+    private function handleUploads(int $ticketId, ?int $replyId, int $uploaderId): void
+    {
+        $files = $this->request->getFiles();
+        if (empty($files['attachments'])) return;
+
+        $uploadPath = WRITEPATH . 'uploads/tickets/';
+        if (!is_dir($uploadPath)) mkdir($uploadPath, 0755, true);
+
+        $allowedMimes = ['image/jpeg','image/png','image/gif','image/webp','application/pdf',
+            'application/msword',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'text/plain'];
+
+        foreach ($files['attachments'] as $file) {
+            if (!$file->isValid() || $file->hasMoved()) continue;
+            if ($file->getSize() > 5 * 1024 * 1024) continue; // 5 MB max
+            if (!in_array($file->getMimeType(), $allowedMimes)) continue;
+
+            $storedName = $file->getRandomName();
+            $file->move($uploadPath, $storedName);
+
+            $this->attachmentModel->insert([
+                'ticket_id'     => $ticketId,
+                'reply_id'      => $replyId,
+                'uploader_id'   => $uploaderId,
+                'original_name' => $file->getClientName(),
+                'stored_name'   => $storedName,
+                'mime_type'     => $file->getMimeType(),
+                'file_size'     => $file->getSize(),
+                'created_at'    => date('Y-m-d H:i:s'),
+            ]);
+        }
+    }
+
 
     public function dashboard()
     {
@@ -58,10 +102,29 @@ class TicketController extends BaseController
     public function index()
     {
         $userId = session()->get('user_id');
-        $tickets = $this->ticketModel->getTicketsForRequester($userId);
+        $query  = trim((string) $this->request->getGet('q'));
+
+        if ($query !== '') {
+            $tickets   = $this->ticketModel->searchForRequester($userId, $query);
+            $pager     = null;
+        } else {
+            $perPage = 10;
+            $tickets = $this->ticketModel
+                ->select('tickets.*, requester.name AS requester_name, resolver.name AS resolver_name, departments.name AS department_name')
+                ->join('users AS requester', 'requester.id = tickets.requester_id')
+                ->join('users AS resolver', 'resolver.id = tickets.resolver_id', 'left')
+                ->join('departments', 'departments.id = tickets.department_id')
+                ->where('tickets.requester_id', $userId)
+                ->where('tickets.archived_at IS NULL')
+                ->orderBy('tickets.created_at', 'DESC')
+                ->paginate($perPage, 'tickets');
+            $pager = $this->ticketModel->pager;
+        }
 
         return view('tickets/index', [
             'tickets' => $tickets,
+            'pager'   => $pager,
+            'query'   => $query,
         ]);
     }
 
@@ -145,11 +208,14 @@ class TicketController extends BaseController
             'description'   => $this->request->getPost('description'),
             'priority'      => $this->request->getPost('priority'),
             'status'        => 'Open',
-            'sla_due_at'    => date('Y-m-d H:i:s', strtotime('+2 hours')),
+            'sla_due_at'    => $this->calculateSlaDueAt($this->request->getPost('priority')),
         ];
 
         $this->ticketModel->insert($data);
         $ticketId = $this->ticketModel->getInsertID();
+
+        // Handle file uploads
+        $this->handleUploads($ticketId, null, (int) session()->get('user_id'));
 
         $agents = $this->userModel->where('department_id', $data['department_id'])
             ->where('role', 'agent')
@@ -164,8 +230,16 @@ class TicketController extends BaseController
             ]);
         }
 
+        // Send confirmation email to student (non-blocking)
+        $ticket   = $this->ticketModel->getTicketWithRelations($ticketId);
+        $student  = $this->userModel->find(session()->get('user_id'));
+        if ($ticket && $student) {
+            $this->mailer->sendTicketConfirmation($ticket, $student);
+        }
+
         return redirect()->to(site_url('student/tickets'))->with('success', 'Your concern has been submitted successfully.');
     }
+
 
     public function view($id)
     {
@@ -179,20 +253,33 @@ class TicketController extends BaseController
             ->select('ticket_replies.*, users.name AS author_name, users.role AS author_role')
             ->join('users', 'users.id = ticket_replies.user_id')
             ->where('ticket_replies.ticket_id', $ticket->id)
+            ->where('ticket_replies.is_internal', 0)  // Students never see internal notes
             ->orderBy('ticket_replies.created_at', 'ASC')
             ->findAll();
 
-        $replyTree = $this->buildReplyTree($replies);
-        $timeline = $this->ticketModel->getTimeline($ticket->id);
-        $feedback = $this->feedbackModel->getFeedbackForTicket($ticket->id);
+        // Attach files per reply
+        $attachmentModel = $this->attachmentModel;
+        foreach ($replies as &$reply) {
+            $reply->attachments = $attachmentModel->getForReply((int)$reply->id);
+        }
+        unset($reply);
+
+        $ticketAttachments = $this->attachmentModel->getForTicketLevel($ticket->id);
+
+
+        $replyTree = buildReplyTree($replies);
+        $timeline  = $this->ticketModel->getTimeline($ticket->id);
+        $feedback  = $this->feedbackModel->getFeedbackForTicket($ticket->id);
 
         return view('tickets/view', [
-            'ticket'   => $ticket,
-            'replies'  => $replyTree,
-            'timeline' => $timeline,
-            'feedback' => $feedback,
+            'ticket'            => $ticket,
+            'replies'           => $replyTree,
+            'ticketAttachments' => $ticketAttachments,
+            'timeline'          => $timeline,
+            'feedback'          => $feedback,
         ]);
     }
+
 
     public function confirm($id)
     {
@@ -415,23 +502,25 @@ class TicketController extends BaseController
         return redirect()->back()->with('success', 'Reply added successfully.');
     }
 
-    private function buildReplyTree(array $replies): array
+    /**
+     * Calculate SLA due date based on ticket priority (#12).
+     *
+     * | Priority | Response window |
+     * |----------|-----------------|
+     * | Urgent   | 1 hour          |
+     * | High     | 4 hours         |
+     * | Medium   | 8 hours         |
+     * | Low      | 24 hours        |
+     */
+    private function calculateSlaDueAt(string $priority): string
     {
-        $replyMap = [];
-        foreach ($replies as $reply) {
-            $reply->children = [];
-            $replyMap[$reply->id] = $reply;
-        }
-
-        $tree = [];
-        foreach ($replyMap as $reply) {
-            if ($reply->reply_to && isset($replyMap[$reply->reply_to])) {
-                $replyMap[$reply->reply_to]->children[] = $reply;
-            } else {
-                $tree[] = $reply;
-            }
-        }
-
-        return $tree;
+        $hoursMap = [
+            'Urgent' => 1,
+            'High'   => 4,
+            'Medium' => 8,
+            'Low'    => 24,
+        ];
+        $hours = $hoursMap[$priority] ?? 8;
+        return date('Y-m-d H:i:s', strtotime("+{$hours} hours"));
     }
 }

@@ -53,7 +53,7 @@
             <?php endif; ?>
 
             <div class="card-fu mb-4">
-                <div class="p-4">
+                <div class="p-3">
                     <div class="mb-3">
                         <h6 class="text-uppercase fw-semibold mb-3" style="color: var(--fu-on-surface-variant); font-size: 12px; letter-spacing: 0.05em;">Description</h6>
                         <p style="line-height: 1.7;"><?= nl2br(esc((string) $ticket->description)) ?></p>
@@ -62,7 +62,7 @@
             </div>
 
             <div class="card-fu">
-                <div class="d-flex justify-between items-center px-4 py-3" style="border-bottom: 1px solid var(--fu-outline-variant); background-color: var(--fu-surface-container-low);">
+                <div class="d-flex justify-between items-center px-3 py-3" style="border-bottom: 1px solid var(--fu-outline-variant); background-color: var(--fu-surface-container-low);">
                     <h6 class="fw-semibold mb-0" style="color: var(--fu-primary);">Conversation Thread</h6>
                 </div>
                 <div style="padding: 0;">
@@ -122,7 +122,7 @@
                         renderReplies($replies, 0, $ticket->id); ?>
                     <?php endif ?>
                 </div>
-                <div class="p-4" style="border-top: 1px solid var(--fu-outline-variant);">
+                <div class="p-3" style="border-top: 1px solid var(--fu-outline-variant);">
                     <h6 class="fw-semibold mb-3" style="color: var(--fu-on-surface);">Add a new reply</h6>
                     <?= form_open('student/tickets/' . $ticket->id . '/reply') ?>
                     <?= csrf_field() ?>
@@ -146,7 +146,7 @@
         <div class="col-md-4">
             <?php if (! $ticket->is_escalated): ?>
             <div class="card-fu mb-4">
-                <div class="px-4 py-3" style="background-color:#fef2f2;border-bottom:1px solid var(--fu-error);">
+                <div class="px-3 py-3" style="background-color:#fef2f2;border-bottom:1px solid var(--fu-error);">
                     <h6 class="fw-semibold mb-0" style="color:var(--fu-error);"><i class="fas fa-flag me-2"></i>Escalate Concern</h6>
                 </div>
                 <div class="p-3">
@@ -159,10 +159,10 @@
             </div>
             <?php endif; ?>
             <div class="card-fu mb-4">
-                <div class="d-flex justify-between items-center px-4 py-3" style="border-bottom: 1px solid var(--fu-outline-variant); background-color: var(--fu-surface-container-low);">
+                <div class="d-flex justify-between items-center px-3 py-3" style="border-bottom: 1px solid var(--fu-outline-variant); background-color: var(--fu-surface-container-low);">
                     <h6 class="fw-semibold mb-0" style="color: var(--fu-primary);">Concern Details</h6>
                 </div>
-                <div class="p-4">
+                <div class="p-3">
                     <div class="mb-3">
                         <label class="text-uppercase small fw-semibold mb-1 d-block" style="color: var(--fu-on-surface-variant);">Status</label>
                         <?php
@@ -204,7 +204,7 @@
 
             <?php if (! empty($timeline)): ?>
             <div class="card-fu mb-4">
-                <div class="d-flex justify-between items-center px-4 py-3" style="border-bottom: 1px solid var(--fu-outline-variant); background-color: var(--fu-surface-container-low);">
+                <div class="d-flex justify-between items-center px-3 py-3" style="border-bottom: 1px solid var(--fu-outline-variant); background-color: var(--fu-surface-container-low);">
                     <h6 class="fw-semibold mb-0" style="color: var(--fu-primary);">Timeline</h6>
                 </div>
                 <div class="p-3">
@@ -228,10 +228,10 @@
 
             <?php if ($feedback): ?>
             <div class="card-fu mb-4">
-                <div class="d-flex justify-between items-center px-4 py-3" style="border-bottom: 1px solid var(--fu-outline-variant); background-color: var(--fu-surface-container-low);">
+                <div class="d-flex justify-between items-center px-3 py-3" style="border-bottom: 1px solid var(--fu-outline-variant); background-color: var(--fu-surface-container-low);">
                     <h6 class="fw-semibold mb-0" style="color: var(--fu-primary);">Your Rating</h6>
                 </div>
-                <div class="p-4 text-center">
+                <div class="p-3 text-center">
                     <div class="star-display mb-2">
                         <?php for ($i = 1; $i <= 5; $i++): ?>
                             <i class="fas fa-star <?= $i <= $feedback->rating ? 'star-filled' : 'star-empty' ?>"></i>

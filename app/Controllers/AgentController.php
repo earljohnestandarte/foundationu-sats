@@ -8,29 +8,73 @@ use App\Models\TicketAssigneeModel;
 use App\Models\TicketFeedbackModel;
 use App\Models\UserModel;
 use App\Models\NotificationModel;
+use App\Models\AttachmentModel;
+use App\Libraries\Mailer;
 use CodeIgniter\Controller;
+
 
 class AgentController extends BaseController
 {
-    protected $helpers = ['url', 'form', 'session'];
+    protected $helpers = ['url', 'form', 'session', 'reply'];
     protected TicketModel $ticketModel;
     protected TicketReplyModel $replyModel;
     protected TicketAssigneeModel $ticketAssigneeModel;
     protected TicketFeedbackModel $feedbackModel;
     protected UserModel $userModel;
     protected NotificationModel $notificationModel;
+    protected AttachmentModel $attachmentModel;
+    protected Mailer $mailer;
+
 
     public function initController($request, $response, $logger)
     {
         parent::initController($request, $response, $logger);
 
-        $this->ticketModel = new TicketModel();
-        $this->replyModel = new TicketReplyModel();
-        $this->ticketAssigneeModel = new TicketAssigneeModel();
-        $this->feedbackModel = new TicketFeedbackModel();
-        $this->userModel = new UserModel();
-        $this->notificationModel = new NotificationModel();
+        $this->ticketModel          = new TicketModel();
+        $this->replyModel           = new TicketReplyModel();
+        $this->ticketAssigneeModel  = new TicketAssigneeModel();
+        $this->feedbackModel        = new TicketFeedbackModel();
+        $this->userModel            = new UserModel();
+        $this->notificationModel    = new NotificationModel();
+        $this->attachmentModel      = new AttachmentModel();
+        $this->mailer               = new Mailer();
     }
+
+    /** Save uploaded files attached to a reply */
+    private function handleUploads(int $ticketId, ?int $replyId, int $uploaderId): void
+    {
+        $files = $this->request->getFiles();
+        if (empty($files['attachments'])) return;
+
+        $uploadPath = WRITEPATH . 'uploads/tickets/';
+        if (!is_dir($uploadPath)) mkdir($uploadPath, 0755, true);
+
+        $allowedMimes = ['image/jpeg','image/png','image/gif','image/webp','application/pdf',
+            'application/msword',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'text/plain'];
+
+        foreach ($files['attachments'] as $file) {
+            if (!$file->isValid() || $file->hasMoved()) continue;
+            if ($file->getSize() > 5 * 1024 * 1024) continue;
+            if (!in_array($file->getMimeType(), $allowedMimes)) continue;
+
+            $storedName = $file->getRandomName();
+            $file->move($uploadPath, $storedName);
+
+            $this->attachmentModel->insert([
+                'ticket_id'     => $ticketId,
+                'reply_id'      => $replyId,
+                'uploader_id'   => $uploaderId,
+                'original_name' => $file->getClientName(),
+                'stored_name'   => $storedName,
+                'mime_type'     => $file->getMimeType(),
+                'file_size'     => $file->getSize(),
+                'created_at'    => date('Y-m-d H:i:s'),
+            ]);
+        }
+    }
+
 
     private function isElevated(): bool
     {
@@ -47,19 +91,50 @@ class AgentController extends BaseController
     public function dashboard()
     {
         $departmentId = session()->get('department_id');
+        $query        = trim((string) $this->request->getGet('q'));
 
-        if ($this->isElevated() && ! $departmentId) {
-            $tickets = $this->ticketModel->where('archived_at IS NULL')->orderBy('created_at', 'DESC')->findAll();
-            $models = $this->ticketModel;
-            $tickets = array_map(function ($t) use ($models) {
-                return $models->getTicketWithRelations($t->id);
-            }, $tickets);
+        // Fix #8: Elevated users previously triggered N+1 queries (1 per ticket).
+        // Now uses a single joined query for both elevated and department-scoped users.
+        if ($query !== '') {
+            // Search mode — no pagination needed, results are bounded by query
+            if ($this->isElevated() && ! $departmentId) {
+                $tickets = $this->ticketModel->getAllActiveWithRelations();
+                // Filter in PHP since searchForDepartment needs a dept ID
+                $tickets = array_filter($tickets, function ($t) use ($query) {
+                    $q = strtolower($query);
+                    return str_contains(strtolower($t->subject), $q)
+                        || str_contains(strtolower($t->description), $q)
+                        || str_contains(strtolower($t->requester_name ?? ''), $q)
+                        || str_contains(strtolower($t->status), $q);
+                });
+                $tickets = array_values($tickets);
+            } else {
+                $tickets = $this->ticketModel->searchForDepartment((int) $departmentId, $query);
+            }
+            $pager = null;
         } else {
-            $tickets = $this->ticketModel->getTicketsForDepartment($departmentId);
+            // Normal paginated mode
+            if ($this->isElevated() && ! $departmentId) {
+                $tickets = $this->ticketModel->getAllActiveWithRelations();
+                $pager   = null; // All-dept admins get full list (could paginate later)
+            } else {
+                $tickets = $this->ticketModel
+                    ->select('tickets.*, requester.name AS requester_name, resolver.name AS resolver_name, departments.name AS department_name')
+                    ->join('users AS requester', 'requester.id = tickets.requester_id')
+                    ->join('users AS resolver', 'resolver.id = tickets.resolver_id', 'left')
+                    ->join('departments', 'departments.id = tickets.department_id')
+                    ->where('tickets.department_id', $departmentId)
+                    ->where('tickets.archived_at IS NULL')
+                    ->orderBy('tickets.created_at', 'DESC')
+                    ->paginate(15, 'tickets');
+                $pager = $this->ticketModel->pager;
+            }
         }
 
         return view('agent/dashboard', [
             'tickets' => $tickets,
+            'pager'   => $pager ?? null,
+            'query'   => $query,
         ]);
     }
 
@@ -67,12 +142,9 @@ class AgentController extends BaseController
     {
         $departmentId = session()->get('department_id');
 
+        // Fix #8: Same N+1 fix applied to archived view.
         if ($this->isElevated() && ! $departmentId) {
-            $tickets = $this->ticketModel->where('archived_at IS NOT NULL')->orderBy('archived_at', 'DESC')->findAll();
-            $models = $this->ticketModel;
-            $tickets = array_map(function ($t) use ($models) {
-                return $models->getTicketWithRelations($t->id);
-            }, $tickets);
+            $tickets = $this->ticketModel->getAllArchivedWithRelations();
         } else {
             $tickets = $this->ticketModel->getArchivedTicketsForDepartment($departmentId);
         }
@@ -97,7 +169,16 @@ class AgentController extends BaseController
             ->orderBy('ticket_replies.created_at', 'ASC')
             ->findAll();
 
-        $replyTree = $this->buildReplyTree($replies);
+        // Attach files per reply (agents see all including internal)
+        $attachmentModel = $this->attachmentModel;
+        foreach ($replies as &$reply) {
+            $reply->attachments = $attachmentModel->getForReply((int)$reply->id);
+        }
+        unset($reply);
+
+        $ticketAttachments = $this->attachmentModel->getForTicketLevel($ticket->id);
+
+        $replyTree = buildReplyTree($replies);
 
         if ($this->isElevated()) {
             $agents = $this->userModel->where('role', 'agent')->findAll();
@@ -106,18 +187,20 @@ class AgentController extends BaseController
         }
 
         $assignees = $this->ticketModel->getAssigneesForTicket($ticket->id);
-        $timeline = $this->ticketModel->getTimeline($ticket->id);
-        $feedback = $this->feedbackModel->getFeedbackForTicket($ticket->id);
+        $timeline  = $this->ticketModel->getTimeline($ticket->id);
+        $feedback  = $this->feedbackModel->getFeedbackForTicket($ticket->id);
 
         return view('agent/ticket_view', [
-            'ticket'    => $ticket,
-            'replies'   => $replyTree,
-            'agents'    => $agents,
-            'assignees' => $assignees,
-            'timeline'  => $timeline,
-            'feedback'  => $feedback,
+            'ticket'            => $ticket,
+            'replies'           => $replyTree,
+            'ticketAttachments' => $ticketAttachments,
+            'agents'            => $agents,
+            'assignees'         => $assignees,
+            'timeline'          => $timeline,
+            'feedback'          => $feedback,
         ]);
     }
+
 
     public function assign($id)
     {
@@ -205,8 +288,13 @@ class AgentController extends BaseController
             ]);
         }
 
+        // Email escalation alert to all SAO/admin
+        $reason = $this->request->getPost('reason') ?: 'Escalated by agent';
+        $this->mailer->sendEscalationAlert($ticket, $saos, $reason);
+
         return redirect()->back()->with('success', 'Concern escalated to administration.');
     }
+
 
     public function updateStatus($id)
     {
@@ -224,7 +312,8 @@ class AgentController extends BaseController
             return redirect()->back()->with('error', 'Concern not available for your department.');
         }
 
-        $newStatus = $this->request->getPost('status');
+        $newStatus  = $this->request->getPost('status');
+        $oldStatus  = $ticket->status;
         $updateData = ['status' => $newStatus];
 
         if ($newStatus === 'Resolved' && ! $ticket->resolved_at) {
@@ -240,8 +329,15 @@ class AgentController extends BaseController
             'is_read'   => false,
         ]);
 
+        // Email the student about the status change
+        $student = $this->userModel->find($ticket->requester_id);
+        if ($student) {
+            $this->mailer->sendStatusChanged($ticket, $student, $oldStatus, $newStatus);
+        }
+
         return redirect()->back()->with('success', 'Concern status updated successfully.');
     }
+
 
     public function addReply($id)
     {
@@ -270,12 +366,20 @@ class AgentController extends BaseController
             }
         }
 
+        $isInternal = (bool) $this->request->getPost('is_internal');
+
         $this->replyModel->insert([
-            'ticket_id' => $ticket->id,
-            'user_id'   => session()->get('user_id'),
-            'message'   => $this->request->getPost('message'),
-            'reply_to'  => $replyTo,
+            'ticket_id'   => $ticket->id,
+            'user_id'     => session()->get('user_id'),
+            'message'     => $this->request->getPost('message'),
+            'reply_to'    => $replyTo,
+            'is_internal' => $isInternal ? 1 : 0,
         ]);
+
+        $replyId = $this->replyModel->getInsertID();
+
+        // Handle file uploads attached to this reply
+        $this->handleUploads($ticket->id, $replyId, (int) session()->get('user_id'));
 
         if (! $ticket->first_response_at) {
             $this->ticketModel->update($ticket->id, [
@@ -283,33 +387,26 @@ class AgentController extends BaseController
             ]);
         }
 
-        $this->notificationModel->insert([
-            'user_id'   => $ticket->requester_id,
-            'ticket_id' => $ticket->id,
-            'message'   => 'New reply added to your concern "' . $ticket->subject . '"',
-            'is_read'   => false,
-        ]);
+        // In-app notification
+        if (! $isInternal) {
+            $this->notificationModel->insert([
+                'user_id'   => $ticket->requester_id,
+                'ticket_id' => $ticket->id,
+                'message'   => 'New reply added to your concern "' . $ticket->subject . '"',
+                'is_read'   => false,
+            ]);
 
-        return redirect()->back()->with('success', 'Reply added successfully.');
-    }
-
-    private function buildReplyTree(array $replies): array
-    {
-        $replyMap = [];
-        foreach ($replies as $reply) {
-            $reply->children = [];
-            $replyMap[$reply->id] = $reply;
-        }
-
-        $tree = [];
-        foreach ($replyMap as $reply) {
-            if ($reply->reply_to && isset($replyMap[$reply->reply_to])) {
-                $replyMap[$reply->reply_to]->children[] = $reply;
-            } else {
-                $tree[] = $reply;
+            // Email the student (only for public replies)
+            $student = $this->userModel->find($ticket->requester_id);
+            $replyObj = $this->replyModel->find($replyId);
+            $agentName = session()->get('user_name') ?? 'Agent';
+            if ($student && $replyObj) {
+                $this->mailer->sendNewReply($ticket, $student, $replyObj, $agentName);
             }
         }
 
-        return $tree;
+        return redirect()->back()->with('success', $isInternal ? 'Internal note added.' : 'Reply added successfully.');
     }
+
 }
+

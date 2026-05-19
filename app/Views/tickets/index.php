@@ -16,13 +16,46 @@
         </div>
     </div>
 
+    {{-- Search Bar (#10) --}}
+    <form method="get" action="<?= site_url('student/tickets') ?>" class="mb-3">
+        <div class="input-group" style="max-width: 480px;">
+            <input
+                type="text"
+                name="q"
+                class="form-control"
+                placeholder="Search by subject, status, or department…"
+                value="<?= esc($query ?? '') ?>"
+                autocomplete="off"
+            >
+            <button class="btn btn-outline-secondary" type="submit">
+                <i class="fas fa-search"></i>
+            </button>
+            <?php if (!empty($query)): ?>
+                <a href="<?= site_url('student/tickets') ?>" class="btn btn-outline-danger" title="Clear search">
+                    <i class="fas fa-times"></i>
+                </a>
+            <?php endif; ?>
+        </div>
+        <?php if (!empty($query)): ?>
+            <p class="mt-2 text-muted" style="font-size: 13px;">
+                Showing results for <strong><?= esc($query) ?></strong> — <?= count($tickets) ?> found.
+            </p>
+        <?php endif; ?>
+    </form>
+
     <div class="card-fu">
         <?php if (empty($tickets)): ?>
             <div class="p-5 text-center">
                 <i class="fas fa-inbox fa-3x mb-3" style="color: var(--fu-on-surface-variant);"></i>
-                <h5 class="text-muted mb-2">No concerns yet</h5>
-                <p class="text-muted mb-4">You haven't submitted any concerns yet.</p>
-                <a href="<?= site_url('student/tickets/create') ?>" class="btn btn-fu-primary">Submit your first concern</a>
+                <?php if (!empty($query)): ?>
+                    <h5 class="text-muted mb-2">No results found</h5>
+                    <p class="text-muted mb-4">No concerns match "<strong><?= esc($query) ?></strong>".</p>
+                    <a href="<?= site_url('student/tickets') ?>" class="btn btn-fu-primary">Clear search</a>
+                <?php else: ?>
+                    <h5 class="text-muted mb-2">No concerns yet</h5>
+                    <p class="text-muted mb-4">You haven't submitted any concerns yet.</p>
+                    <a href="<?= site_url('student/tickets/create') ?>" class="btn btn-fu-primary">Submit your first concern</a>
+                <?php endif; ?>
             </div>
         <?php else: ?>
             <?php foreach ($tickets as $ticket): ?>
@@ -66,6 +99,12 @@
                     </div>
                 </div>
             <?php endforeach; ?>
+
+            <?php if (!empty($pager)): ?>
+                <div class="px-4 py-3" style="border-top: 1px solid var(--fu-outline-variant);">
+                    <?= $pager->links('tickets', 'bootstrap_pagination') ?>
+                </div>
+            <?php endif; ?>
         <?php endif; ?>
     </div>
 </section>

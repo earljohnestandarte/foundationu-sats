@@ -10,6 +10,12 @@ class UserSeeder extends Seeder
 {
     public function run()
     {
+        // Safety guard: never seed test users in production
+        if (ENVIRONMENT === 'production') {
+            echo "UserSeeder skipped in production.\n";
+            return;
+        }
+
         $departmentModel = new DepartmentModel();
         $userModel = new UserModel();
 

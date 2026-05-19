@@ -277,8 +277,37 @@ class ManagementController extends BaseController
             return redirect()->back()->with('error', $e->getMessage());
         }
 
-        $this->userModel->delete($user->id);
-        return redirect()->to(site_url('sao/users'))->with('success', 'User deleted.');
+        // Soft-disable instead of hard-delete (#14).
+        // Hard deletion cascades and permanently destroys all associated tickets.
+        $this->userModel->deactivate($user->id);
+        return redirect()->to(site_url('sao/users'))->with('success', 'User deactivated. Their tickets are preserved.');
+    }
+
+    /**
+     * Toggle a user account between active and deactivated (#14).
+     */
+    public function userToggleActive($id)
+    {
+        $user = $this->userModel->find((int) $id);
+        if (! $user) {
+            return redirect()->back()->with('error', 'User not found.');
+        }
+
+        try {
+            $this->guardManageUser($user);
+        } catch (\RuntimeException $e) {
+            return redirect()->back()->with('error', $e->getMessage());
+        }
+
+        if ($user->is_active) {
+            $this->userModel->deactivate($user->id);
+            $msg = 'User account deactivated.';
+        } else {
+            $this->userModel->activate($user->id);
+            $msg = 'User account reactivated.';
+        }
+
+        return redirect()->to(site_url('sao/users'))->with('success', $msg);
     }
 
     public function departments()

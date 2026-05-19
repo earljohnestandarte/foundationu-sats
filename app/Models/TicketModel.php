@@ -43,6 +43,49 @@ class TicketModel extends Model
             ->findAll();
     }
 
+    /**
+     * Full-text search across subject and description for a given student (#10).
+     */
+    public function searchForRequester(int $requesterId, string $query): array
+    {
+        $like = '%' . $this->db->escapeLikeString($query) . '%';
+        return $this->select('tickets.*, requester.name AS requester_name, resolver.name AS resolver_name, departments.name AS department_name')
+            ->join('users AS requester', 'requester.id = tickets.requester_id')
+            ->join('users AS resolver', 'resolver.id = tickets.resolver_id', 'left')
+            ->join('departments', 'departments.id = tickets.department_id')
+            ->where('tickets.requester_id', $requesterId)
+            ->where('tickets.archived_at IS NULL')
+            ->groupStart()
+                ->like('tickets.subject', $query)
+                ->orLike('tickets.description', $query)
+                ->orLike('tickets.status', $query)
+                ->orLike('departments.name', $query)
+            ->groupEnd()
+            ->orderBy('tickets.created_at', 'DESC')
+            ->findAll();
+    }
+
+    /**
+     * Full-text search across subject and description for a given department (#10).
+     */
+    public function searchForDepartment(int $departmentId, string $query): array
+    {
+        return $this->select('tickets.*, requester.name AS requester_name, resolver.name AS resolver_name, departments.name AS department_name')
+            ->join('users AS requester', 'requester.id = tickets.requester_id')
+            ->join('users AS resolver', 'resolver.id = tickets.resolver_id', 'left')
+            ->join('departments', 'departments.id = tickets.department_id')
+            ->where('tickets.department_id', $departmentId)
+            ->where('tickets.archived_at IS NULL')
+            ->groupStart()
+                ->like('tickets.subject', $query)
+                ->orLike('tickets.description', $query)
+                ->orLike('tickets.status', $query)
+                ->orLike('requester.name', $query)
+            ->groupEnd()
+            ->orderBy('tickets.created_at', 'DESC')
+            ->findAll();
+    }
+
     public function getTicketsForDepartment(int $departmentId)
     {
         return $this->select('tickets.*, requester.name AS requester_name, resolver.name AS resolver_name, departments.name AS department_name')
@@ -198,5 +241,35 @@ class TicketModel extends Model
         }
 
         return $builder->findAll();
+    }
+
+    /**
+     * All active tickets (not archived) across all departments, with relations.
+     * Single JOIN query — replaces the N+1 array_map loop (#8).
+     */
+    public function getAllActiveWithRelations(): array
+    {
+        return $this->select('tickets.*, requester.name AS requester_name, resolver.name AS resolver_name, departments.name AS department_name')
+            ->join('users AS requester', 'requester.id = tickets.requester_id')
+            ->join('users AS resolver', 'resolver.id = tickets.resolver_id', 'left')
+            ->join('departments', 'departments.id = tickets.department_id')
+            ->where('tickets.archived_at IS NULL')
+            ->orderBy('tickets.created_at', 'DESC')
+            ->findAll();
+    }
+
+    /**
+     * All archived tickets across all departments, with relations.
+     * Single JOIN query — replaces the N+1 array_map loop (#8).
+     */
+    public function getAllArchivedWithRelations(): array
+    {
+        return $this->select('tickets.*, requester.name AS requester_name, resolver.name AS resolver_name, departments.name AS department_name')
+            ->join('users AS requester', 'requester.id = tickets.requester_id')
+            ->join('users AS resolver', 'resolver.id = tickets.resolver_id', 'left')
+            ->join('departments', 'departments.id = tickets.department_id')
+            ->where('tickets.archived_at IS NOT NULL')
+            ->orderBy('tickets.archived_at', 'DESC')
+            ->findAll();
     }
 }
