@@ -91,8 +91,8 @@ Uses any OpenAI-compatible chat completions API. Configure these in your `.env` 
 
 ```env
 AI_API_KEY = sk-your-key-here
-AI_BASE_URL = https://integrate.api.nvidia.com/v1
-AI_MODEL = openai/gpt-oss-120b
+AI_BASE_URL = https://api.openai.com/v1
+AI_MODEL = gpt-4o
 ```
 
 See `.env.example` for all available settings.
@@ -143,12 +143,13 @@ The frontend adheres strictly to a clean, minimalist SaaS design pattern:
 
 ### Default Seed Accounts
 
-| Role    | Email                           | Password   |
-|---------|---------------------------------|------------|
-| Admin   | patricia.brown@foundationu.com  | password   |
-| SAO     | sao@foundationu.com             | password   |
-| Agent   | agent@foundationu.com           | password   |
-| Student | student@foundationu.com         | password   |
+All seed accounts use password: **`12345678`**
+
+| Role    | Name           | Email                          |
+|---------|----------------|--------------------------------|
+| Admin   | Robert Smith   | robert.smith@foundationu.com   |
+| Agent   | Mark Garcia    | mark.garcia@foundationu.com    |
+| Student | Liza Santos    | liza.santos@foundationu.com    |
 
 ---
 

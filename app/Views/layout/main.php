@@ -4,6 +4,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href="<?= base_url('osl.svg') ?>" sizes="any" />
     <title><?= $this->renderSection('title') ?: 'Foundation University SATS' ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
@@ -169,7 +170,7 @@
                                 <?php else : ?>
                                     <?php foreach ($notifications as $notification) : ?>
                                         <li>
-                                            <a class="dropdown-item notification-item" href="#" data-id="<?= $notification->id ?>">
+                                            <a class="dropdown-item notification-item" href="#" data-id="<?= $notification->id ?>" data-ticket-id="<?= $notification->ticket_id ?>">
                                                 <div class="small mb-1 text-truncate" style="max-width: 300px;"><?= esc((string)$notification->message) ?></div>
                                                 <small class="text-muted"><?= date('M j, H:i', strtotime($notification->created_at)) ?></small>
                                             </a>
@@ -177,7 +178,7 @@
                                     <?php endforeach; ?>
                                 <?php endif; ?>
                                 <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="#">View All Notifications</a></li>
+                                <li><a class="dropdown-item" href="<?= site_url('notification') ?>">View All Notifications</a></li>
                             </ul>
 
                             <button class="icon-btn d-none d-md-block">
@@ -234,6 +235,22 @@
         function siteUrl(uri = '') {
             return '<?= base_url() ?>' + (uri ? '/' + uri : '');
         }
+
+        var csrfName = '<?= csrf_token() ?>';
+        var csrfHash = '<?= csrf_hash() ?>';
+        var csrfHeader = '<?= csrf_header() ?>';
+
+        $(document).ajaxSend(function(e, xhr, options) {
+            if (!csrfHash) return;
+            if (options.type && options.type.toUpperCase() !== 'GET') {
+                xhr.setRequestHeader(csrfHeader, csrfHash);
+                if (options.data instanceof FormData) {
+                    options.data.append(csrfName, csrfHash);
+                } else if (typeof options.data === 'string' || !options.data) {
+                    options.data = (options.data || '') + (options.data ? '&' : '') + encodeURIComponent(csrfName) + '=' + encodeURIComponent(csrfHash);
+                }
+            }
+        });
 
         <?php if (session()->getFlashdata('success')) : ?>
             var successToast = new bootstrap.Toast(document.getElementById('successToast'), {

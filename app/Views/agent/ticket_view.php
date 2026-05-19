@@ -316,9 +316,9 @@
                         <div class="timeline-item <?= $event['type'] ?>">
                             <div class="timeline-dot"></div>
                             <div class="timeline-content">
-                                <div class="d-flex align-items-center gap-2">
+                                <div class="timeline-header">
                                     <i class="fas <?= $event['icon'] ?> timeline-icon"></i>
-                                    <span><?= $event['label'] ?></span>
+                                    <span class="timeline-label"><?= $event['label'] ?></span>
                                 </div>
                                 <small style="color: var(--fu-on-surface-variant);"><?= date('M j, g:i A', strtotime($event['timestamp'])) ?></small>
                             </div>
@@ -456,4 +456,3 @@
     });
 </script>
 <?php $this->endSection() ?>
-

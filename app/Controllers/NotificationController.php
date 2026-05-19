@@ -29,6 +29,30 @@ class NotificationController extends BaseController
             'is_read' => true,
         ]);
 
-        return $this->response->setJSON(['success' => true]);
+        $role        = session()->get('user_role');
+        $ticketId    = $notification->ticket_id;
+        $redirectUrl = '';
+
+        if ($ticketId) {
+            if ($role === 'student') {
+                $redirectUrl = site_url('student/tickets/' . $ticketId);
+            } else {
+                $redirectUrl = site_url('agent/view/' . $ticketId);
+            }
+        }
+
+        return $this->response->setJSON([
+            'success'     => true,
+            'redirectUrl' => $redirectUrl,
+        ]);
+    }
+
+    public function index()
+    {
+        $userId = (int) session()->get('user_id');
+
+        return view('notifications/index', [
+            'notifications' => $this->notificationModel->getNotificationsForUser($userId),
+        ]);
     }
 }

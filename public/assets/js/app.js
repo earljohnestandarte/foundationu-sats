@@ -5,15 +5,21 @@ $(document).ready(function() {
 
     $('.notification-item').on('click', function(e) {
         e.preventDefault();
-        var notificationId = $(this).data('id');
+        var $this = $(this);
+        var notificationId = $this.data('id');
 
         $.ajax({
             url: siteUrl('notification/markAsRead') + '/' + notificationId,
             method: 'POST',
             success: function(response) {
-                if (response.success) {
+                if (response.success && response.redirectUrl) {
+                    window.location.href = response.redirectUrl;
+                } else {
                     location.reload();
                 }
+            },
+            error: function() {
+                location.reload();
             }
         });
     });

@@ -9,30 +9,31 @@
     <div class="decorative-blob-2"></div>
 
     <div class="login-card animate-fadeIn">
-        <div class="d-flex justify-content-center align-items-center gap-4 mb-8 login-card-logo-group">
-            <div class="logo-circle animate-pulse-slow">
-                <img src="<?= base_url('assets/logos/foundationu_logo.png') ?>" alt="Foundation University Logo" class="foundationu-logo">
+        <div class="login-icons">
+            <div class="login-icon-item login-icon-fu">
+                <img src="<?= base_url('fu.svg') ?>" alt="Foundation University">
             </div>
-            <div class="logo-circle animate-pulse-slow-delay">
-                <img src="<?= base_url('assets/logos/osl_logo.png') ?>" alt="OSL Logo" class="osl-logo">
+            <div class="login-icon-divider"></div>
+            <div class="login-icon-item login-icon-osl">
+                <img src="<?= base_url('osl.svg') ?>" alt="OSL">
             </div>
         </div>
 
-        <h2 class="text-center text-white text-3xl font-extrabold mb-1">
-            Welcome back!
+        <h2 class="text-center text-white login-heading">
+            Foundation University
         </h2>
-        <p class="text-center mb-8 login-subtitle">
-            Sign in to continue to FU-SATS
+        <p class="text-center login-subtitle">
+            Student Affairs Ticketing System
         </p>
 
         <?php if (isset($loginError)): ?>
-            <div class="error-box mb-6">
+            <div class="error-box mb-4">
                 Login failed: <?= esc($loginError) ?>
             </div>
         <?php endif ?>
 
         <?= form_open('login', ['id' => 'loginForm']) ?>
-        <div class="mb-6">
+        <div class="mb-4">
             <label for="email" class="form-label d-block text-sm font-medium text-white mb-2">
                 Email Address
             </label>
@@ -48,7 +49,7 @@
             </div>
         </div>
 
-        <div class="mb-6">
+        <div class="mb-4">
             <label for="password" class="form-label d-block text-sm font-medium text-white mb-2">
                 Password
             </label>

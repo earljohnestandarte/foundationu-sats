@@ -33,4 +33,11 @@ class NotificationModel extends Model
             ->where('is_read', false)
             ->countAllResults();
     }
+
+    public function getNotificationsForUser(int $userId)
+    {
+        return $this->where('user_id', $userId)
+            ->orderBy('created_at', 'DESC')
+            ->findAll();
+    }
 }

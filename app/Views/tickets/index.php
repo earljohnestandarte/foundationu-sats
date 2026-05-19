@@ -16,7 +16,7 @@
         </div>
     </div>
 
-    {{-- Search Bar (#10) --}}
+    <!-- Search Bar -->
     <form method="get" action="<?= site_url('student/tickets') ?>" class="mb-3">
         <div class="input-group" style="max-width: 480px;">
             <input

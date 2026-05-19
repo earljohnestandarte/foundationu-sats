@@ -54,6 +54,7 @@ $routes->group('sao', ['filter' => ['auth', 'role:sao,admin']], function ($route
 });
 
 $routes->group('notification', ['filter' => 'auth'], function ($routes) {
+    $routes->get('/', 'NotificationController::index');
     $routes->post('markAsRead/(:num)', 'NotificationController::markAsRead/$1');
 });
 

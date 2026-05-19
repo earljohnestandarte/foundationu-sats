@@ -26,15 +26,6 @@
     animation: fadeIn 0.8s ease-out forwards;
 }
 
-.animate-pulse-slow {
-    animation: pulse-slow 8s infinite ease-in-out;
-}
-
-.animate-pulse-slow-delay {
-    animation: pulse-slow 8s infinite ease-in-out;
-    animation-delay: 0.5s;
-}
-
 .login-bg {
     min-height: 100vh;
     display: flex;
@@ -58,44 +49,62 @@
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 16px;
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-    max-width: 400px;
+    max-width: 360px;
     width: 100%;
-    padding: 32px;
+    padding: 28px;
 }
 
-.login-card-logo-group {
-    margin-top: -88px;
-}
-
-.logo-circle {
-    width: 96px;
-    height: 96px;
-    background: white;
-    border-radius: 50%;
+.login-icons {
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+    gap: 0;
+    margin-bottom: 22px;
 }
 
-.logo-circle img.foundationu-logo {
-    width: 128px;
-    height: 128px;
-    object-fit: cover;
+.login-icon-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.9);
 }
 
-.logo-circle img.osl-logo {
-    width: 129px;
-    height: 128px;
+.login-icon-fu {
+    width: 60px;
+    height: 60px;
+}
+
+.login-icon-osl {
+    width: 60px;
+    height: 60px;
+}
+
+.login-icon-item img {
+    width: 100%;
+    height: 100%;
+    display: block;
     object-fit: contain;
-    padding: 8px;
-    margin-left: 6.3px;
+}
+
+.login-icon-divider {
+    width: 1px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.2);
+    margin: 0 14px;
+    border-radius: 1px;
+}
+
+.login-heading {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+    letter-spacing: -0.02em;
 }
 
 .login-input {
     width: 100%;
-    padding: 12px;
-    border-radius: 12px;
+    padding: 10px 12px;
+    border-radius: 10px;
     border: 2px solid rgba(255, 255, 255, 0.3);
     background: rgba(0, 0, 0, 0.5);
     color: white;
@@ -117,12 +126,12 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 12px;
-    border-radius: 12px;
+    padding: 10px;
+    border-radius: 10px;
     font-weight: bold;
     color: white;
     background: #7D1921;
-    margin-top: 20px;
+    margin-top: 16px;
     border: 1px solid rgba(255, 255, 255, 0.2);
     transition: all 0.3s ease;
     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
@@ -189,7 +198,7 @@
     right: 12px;
     top: 50%;
     transform: translateY(-50%);
-    color: #a730a1;
+    color: rgba(255, 255, 255, 0.7);
     background: none;
     border: none;
     cursor: pointer;
@@ -197,7 +206,7 @@
 }
 
 .password-toggle:hover {
-    color: #B22543;
+    color: #7D1921;
 }
 
 .login-form-text {
@@ -207,6 +216,7 @@
 .login-subtitle {
     color: #d9c3e5;
     font-weight: 300;
+    margin-bottom: 22px;
 }
 
 .login-footer-link {
@@ -224,6 +234,6 @@
 
 @media (min-width: 768px) {
     .login-card {
-        padding: 40px;
+        padding: 32px;
     }
 }
