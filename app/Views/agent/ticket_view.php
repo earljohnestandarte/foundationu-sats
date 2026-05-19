@@ -91,83 +91,8 @@
                 <div class="d-flex justify-between items-center px-3 py-3 card-header-section">
                     <h6 class="fw-semibold mb-0">Conversation Thread</h6>
                 </div>
-                <div style="padding: 0;">
-                    <?php if (empty($replies)): ?>
-                        <div class="p-5 text-center">
-                            <i class="fas fa-comments fa-3x mb-3"></i>
-                            <p class="mb-0">No replies yet. Start the conversation.</p>
-                        </div>
-                    <?php else: ?>
-                        <?php function renderReplies(array $replies, int $depth = 0, $ticketId)
-                        {
-                            foreach ($replies as $reply):
-                                $roleLabel = ($reply->author_role ?? '') === 'agent' ? 'Agent' : (($reply->author_role ?? '') === 'admin' ? 'Admin' : 'Student');
-                                $roleBadgeClass = ($reply->author_role ?? '') === 'agent' ? 'agent' : (($reply->author_role ?? '') === 'admin' ? 'admin' : 'student');
-                                $isInternal = !empty($reply->is_internal);
-                            ?>
-                                <div class="reply-bubble<?= $depth ? ' depth-1' : '' ?><?= $isInternal ? ' internal' : '' ?>">
-                                    <div class="d-flex justify-content-between align-items-start mb-2">
-                                        <div class="d-flex align-items-center gap-2">
-                                            <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; background-color: var(--fu-surface-container-low);">
-                                                <i class="fas fa-user" style="color: var(--fu-on-surface-variant);"></i>
-                                            </div>
-                                            <div>
-                                                <div class="d-flex align-items-center gap-2">
-                                                    <strong><?= esc((string) $reply->author_name) ?></strong>
-                                                    <span class="badge-fu signature-badge <?= $roleBadgeClass ?>"><?= $roleLabel ?></span>
-                                                    <?php if ($isInternal): ?>
-                                                    <span class="internal-badge"><i class="fas fa-lock me-1"></i>Internal Note</span>
-                                                    <?php endif; ?>
-                                                </div>
-                                                <small><?= date('M j, Y g:i A', strtotime($reply->created_at)) ?></small>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="reply-content"><?= ($reply->message) ?></div>
-                                    <?php if (!empty($reply->attachments)): ?>
-                                    <div class="fu-attachments mt-2">
-                                        <?php foreach ($reply->attachments as $att): ?>
-                                        <?php $isImg = in_array($att['mime_type'], ['image/jpeg','image/png','image/gif','image/webp']); ?>
-                                        <a href="<?= site_url('attachment/download/' . $att['id']) ?>" class="fu-attachment-item<?= $isImg ? ' is-image' : '' ?>" target="_blank">
-                                            <?php if ($isImg): ?>
-                                            <img src="<?= site_url('attachment/download/' . $att['id']) ?>" alt="<?= esc($att['original_name']) ?>">
-                                            <?php else: ?>
-                                            <i class="fas <?= \App\Models\AttachmentModel::getIcon($att['mime_type']) ?>"></i>
-                                            <?php endif; ?>
-                                            <span class="fu-att-name"><?= esc($att['original_name']) ?></span>
-                                            <span class="fu-att-size"><?= \App\Models\AttachmentModel::formatSize((int)$att['file_size']) ?></span>
-                                        </a>
-                                        <?php endforeach; ?>
-                                    </div>
-                                    <?php endif; ?>
-
-                                    <div class="signature-line mt-2 pt-2" style="border-top: 1px solid var(--fu-outline-variant);">
-                                        <small style="color: var(--fu-on-surface-variant);">
-                                            <i class="fas fa-building me-1"></i> Foundation University — Student Affairs Ticketing System
-                                        </small>
-                                    </div>
-                                    <button type="button" class="btn btn-sm btn-link text-decoration-none reply-toggle mt-2" data-target="reply-form-<?= $reply->id ?>">
-                                        <i class="fas fa-reply me-1"></i> Reply
-                                    </button>
-                                    <div class="reply-form reply-form-<?= $reply->id ?> mt-3">
-                                        <?= form_open('agent/addReply/' . $ticketId) ?>
-                                        <?= csrf_field() ?>
-                                        <?= form_hidden('reply_to', $reply->id) ?>
-                                        <div class="mb-2">
-                                            <div class="quill-editor" id="quill-<?= $reply->id ?>"></div>
-                                            <textarea name="message" class="quill-hidden" style="display:none;"></textarea>
-                                        </div>
-                                        <button type="submit" class="btn btn-fu-primary btn-sm quill-submit">Post Reply</button>
-                                        <?= form_close() ?>
-                                    </div>
-                                    <?php if (! empty($reply->children)): ?>
-                                        <?php renderReplies($reply->children, $depth + 1, $ticketId); ?>
-                                    <?php endif; ?>
-                                </div>
-                        <?php endforeach;
-                        }
-                        renderReplies($replies, 0, $ticket->id); ?>
-                    <?php endif ?>
+                <div id="ticketReplyThread" style="padding: 0;">
+                    <?= view('agent/partials/reply_thread', ['ticket' => $ticket, 'replies' => $replies]) ?>
                 </div>
                 <div class="p-3" style="border-top: 1px solid var(--fu-outline-variant);">
                     <div class="d-flex align-items-center justify-content-between mb-3">
@@ -310,21 +235,8 @@
                 <div class="d-flex justify-between items-center px-3 py-3 card-header-section">
                     <h6 class="fw-semibold mb-0">Timeline</h6>
                 </div>
-                <div class="p-3">
-                    <div class="timeline-list">
-                        <?php foreach ($timeline as $event): ?>
-                        <div class="timeline-item <?= $event['type'] ?>">
-                            <div class="timeline-dot"></div>
-                            <div class="timeline-content">
-                                <div class="timeline-header">
-                                    <i class="fas <?= $event['icon'] ?> timeline-icon"></i>
-                                    <span class="timeline-label"><?= $event['label'] ?></span>
-                                </div>
-                                <small style="color: var(--fu-on-surface-variant);"><?= date('M j, g:i A', strtotime($event['timestamp'])) ?></small>
-                            </div>
-                        </div>
-                        <?php endforeach; ?>
-                    </div>
+                <div class="p-3" id="ticketTimeline">
+                    <?= view('partials/timeline', ['timeline' => $timeline]) ?>
                 </div>
             </div>
             <?php endif; ?>
@@ -354,105 +266,9 @@
 <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
 <script src="<?= base_url('assets/js/ticket-view.js') ?>"></script>
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        // ── Quill editors ──────────────────────────────────────
-        document.querySelectorAll('.quill-editor').forEach(function (el) {
-            var quill = new Quill(el, {
-                theme: 'snow',
-                modules: { toolbar: [['bold','italic','underline'], [{list:'ordered'},{list:'bullet'}], ['link']] },
-                placeholder: 'Write your message...',
-            });
-            el.__quill = quill;
-            var form = el.closest('form');
-            var hidden = form.querySelector('.quill-hidden');
-            form.addEventListener('submit', function () {
-                hidden.value = quill.root.innerHTML;
-            });
-        });
-        document.querySelectorAll('.quill-submit').forEach(function (btn) {
-            btn.addEventListener('click', function (e) {
-                var form = btn.closest('form');
-                var quill = form.querySelector('.ql-editor');
-                if (quill && quill.innerHTML.trim() === '<p><br></p>') {
-                    e.preventDefault();
-                    alert('Please enter a message.');
-                }
-            });
-        });
-
-        // ── Internal note toggle ───────────────────────────────
-        const toggleBtn    = document.getElementById('internalToggle');
-        const internalInput = document.getElementById('isInternalInput');
-        const replyForm    = document.getElementById('main-reply-form');
-        if (toggleBtn) {
-            toggleBtn.addEventListener('click', function () {
-                const active = toggleBtn.classList.toggle('active');
-                internalInput.value = active ? '1' : '0';
-                replyForm.classList.toggle('is-internal', active);
-                toggleBtn.innerHTML = active
-                    ? '<i class="fas fa-lock me-1"></i> Internal Note <i class="fas fa-check ms-1"></i>'
-                    : '<i class="fas fa-lock me-1"></i> Internal Note';
-            });
-        }
-
-        // ── Reply file drop-zone ───────────────────────────────
-        const replyDropzone = document.getElementById('reply-dropzone');
-        const replyFileInput = document.getElementById('reply-attachments');
-        const replyPreview  = document.getElementById('replyFilePreview');
-        let replyFiles = [];
-
-        function formatSize(b) {
-            if (b < 1024) return b + ' B';
-            if (b < 1048576) return (b/1024).toFixed(1) + ' KB';
-            return (b/1048576).toFixed(1) + ' MB';
-        }
-        function getIcon(n) {
-            const e = n.split('.').pop().toLowerCase();
-            if (['jpg','jpeg','png','gif','webp'].includes(e)) return 'fa-file-image';
-            if (e === 'pdf') return 'fa-file-pdf';
-            if (['doc','docx'].includes(e)) return 'fa-file-word';
-            return 'fa-file';
-        }
-        function renderReplyChips() {
-            replyPreview.innerHTML = '';
-            replyFiles.forEach((f, i) => {
-                const chip = document.createElement('div');
-                chip.className = 'fu-file-chip';
-                chip.innerHTML = `<i class="fas ${getIcon(f.name)}"></i><span class="fu-chip-name">${f.name}</span><span class="fu-chip-size">${formatSize(f.size)}</span><button type="button" class="fu-chip-remove" data-idx="${i}"><i class="fas fa-times"></i></button>`;
-                replyPreview.appendChild(chip);
-            });
-            const dt = new DataTransfer();
-            replyFiles.forEach(f => dt.items.add(f));
-            replyFileInput.files = dt.files;
-        }
-        if (replyPreview) {
-            replyPreview.addEventListener('click', e => {
-                const btn = e.target.closest('.fu-chip-remove');
-                if (!btn) return;
-                replyFiles.splice(parseInt(btn.dataset.idx), 1);
-                renderReplyChips();
-            });
-        }
-        if (replyFileInput) {
-            replyFileInput.addEventListener('change', () => {
-                Array.from(replyFileInput.files).forEach(f => {
-                    if (replyFiles.length < 5 && f.size <= 5*1024*1024) replyFiles.push(f);
-                });
-                renderReplyChips();
-            });
-        }
-        if (replyDropzone) {
-            replyDropzone.addEventListener('dragover', e => { e.preventDefault(); replyDropzone.classList.add('dragover'); });
-            replyDropzone.addEventListener('dragleave', () => replyDropzone.classList.remove('dragover'));
-            replyDropzone.addEventListener('drop', e => {
-                e.preventDefault();
-                replyDropzone.classList.remove('dragover');
-                Array.from(e.dataTransfer.files).forEach(f => {
-                    if (replyFiles.length < 5 && f.size <= 5*1024*1024) replyFiles.push(f);
-                });
-                renderReplyChips();
-            });
-        }
-    });
+    window.ticketRealtimeConfig = <?= json_encode(array_merge($realtimeConfig, [
+        'threadUrl' => site_url('agent/view/' . $ticket->id . '/thread'),
+        'agentMode' => true,
+    ]), JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
 </script>
 <?php $this->endSection() ?>

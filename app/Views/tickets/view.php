@@ -65,62 +65,8 @@
                 <div class="d-flex justify-between items-center px-3 py-3" style="border-bottom: 1px solid var(--fu-outline-variant); background-color: var(--fu-surface-container-low);">
                     <h6 class="fw-semibold mb-0" style="color: var(--fu-primary);">Conversation Thread</h6>
                 </div>
-                <div style="padding: 0;">
-                    <?php if (empty($replies)): ?>
-                        <div class="p-5 text-center">
-                            <i class="fas fa-comments fa-3x mb-3" style="color: var(--fu-on-surface-variant);"></i>
-                            <p class="mb-0" style="color: var(--fu-on-surface-variant);">No replies yet. Please wait for an agent response.</p>
-                        </div>
-                    <?php else: ?>
-                        <?php function renderReplies(array $replies, int $depth = 0, $ticketId)
-                        {
-                            foreach ($replies as $reply):
-                                $roleLabel = ($reply->author_role ?? '') === 'agent' ? 'Agent' : (($reply->author_role ?? '') === 'admin' ? 'Admin' : 'Student');
-                                $roleBadgeClass = ($reply->author_role ?? '') === 'agent' ? 'agent' : (($reply->author_role ?? '') === 'admin' ? 'admin' : 'student');
-                            ?>
-                                <div class="reply-bubble<?= $depth ? ' depth-1' : '' ?>">
-                                    <div class="d-flex justify-content-between align-items-start mb-2">
-                                        <div class="d-flex align-items-center gap-2">
-                                            <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; background-color: var(--fu-surface-container-low);">
-                                                <i class="fas fa-user" style="color: var(--fu-on-surface-variant);"></i>
-                                            </div>
-                                            <div>
-                                                <div class="d-flex align-items-center gap-2">
-                                                    <strong style="color: var(--fu-on-surface);"><?= esc((string) $reply->author_name) ?></strong>
-                                                    <span class="badge-fu signature-badge <?= $roleBadgeClass ?>"><?= $roleLabel ?></span>
-                                                </div>
-                                                <small style="color: var(--fu-on-surface-variant);"><?= date('M j, Y g:i A', strtotime($reply->created_at)) ?></small>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="reply-content"><?= ($reply->message) ?></div>
-                                    <div class="signature-line mt-2 pt-2" style="border-top: 1px solid var(--fu-outline-variant);">
-                                        <small style="color: var(--fu-on-surface-variant);">
-                                            <i class="fas fa-building me-1"></i> Foundation University — Student Affairs Ticketing System
-                                        </small>
-                                    </div>
-                                    <button type="button" class="btn btn-sm btn-link text-decoration-none reply-toggle mt-2" data-target="reply-form-<?= $reply->id ?>">
-                                        <i class="fas fa-reply me-1"></i> Reply
-                                    </button>
-                                    <div class="reply-form reply-form-<?= $reply->id ?> mt-3">
-                                        <?= form_open('student/tickets/' . $ticketId . '/reply') ?>
-                                        <?= csrf_field() ?>
-                                        <?= form_hidden('reply_to', $reply->id) ?>
-                                        <div class="mb-2">
-                                            <div class="quill-editor" id="quill-<?= $reply->id ?>"></div>
-                                            <textarea name="message" class="quill-hidden" style="display:none;"></textarea>
-                                        </div>
-                                        <button type="submit" class="btn btn-fu-primary btn-sm quill-submit">Post Reply</button>
-                                        <?= form_close() ?>
-                                    </div>
-                                    <?php if (! empty($reply->children)): ?>
-                                        <?php renderReplies($reply->children, $depth + 1, $ticketId); ?>
-                                    <?php endif; ?>
-                                </div>
-                        <?php endforeach;
-                        }
-                        renderReplies($replies, 0, $ticket->id); ?>
-                    <?php endif ?>
+                <div id="ticketReplyThread" style="padding: 0;">
+                    <?= view('tickets/partials/reply_thread', ['ticket' => $ticket, 'replies' => $replies]) ?>
                 </div>
                 <div class="p-3" style="border-top: 1px solid var(--fu-outline-variant);">
                     <h6 class="fw-semibold mb-3" style="color: var(--fu-on-surface);">Add a new reply</h6>
@@ -207,21 +153,8 @@
                 <div class="d-flex justify-between items-center px-3 py-3" style="border-bottom: 1px solid var(--fu-outline-variant); background-color: var(--fu-surface-container-low);">
                     <h6 class="fw-semibold mb-0" style="color: var(--fu-primary);">Timeline</h6>
                 </div>
-                <div class="p-3">
-                    <div class="timeline-list">
-                        <?php foreach ($timeline as $i => $event): ?>
-                        <div class="timeline-item <?= $event['type'] ?>">
-                            <div class="timeline-dot"></div>
-                            <div class="timeline-content">
-                                <div class="timeline-header">
-                                    <i class="fas <?= $event['icon'] ?> timeline-icon"></i>
-                                    <span class="timeline-label"><?= $event['label'] ?></span>
-                                </div>
-                                <small style="color: var(--fu-on-surface-variant);"><?= date('M j, g:i A', strtotime($event['timestamp'])) ?></small>
-                            </div>
-                        </div>
-                        <?php endforeach; ?>
-                    </div>
+                <div class="p-3" id="ticketTimeline">
+                    <?= view('partials/timeline', ['timeline' => $timeline]) ?>
                 </div>
             </div>
             <?php endif; ?>
@@ -251,30 +184,8 @@
 <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
 <script src="<?= base_url('assets/js/ticket-view.js') ?>"></script>
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        document.querySelectorAll('.quill-editor').forEach(function (el) {
-            var quill = new Quill(el, {
-                theme: 'snow',
-                modules: { toolbar: [['bold','italic','underline'], [{list:'ordered'},{list:'bullet'}], ['link']] },
-                placeholder: 'Write your message...',
-            });
-            el.__quill = quill;
-            var form = el.closest('form');
-            var hidden = form.querySelector('.quill-hidden');
-            form.addEventListener('submit', function () {
-                hidden.value = quill.root.innerHTML;
-            });
-        });
-        document.querySelectorAll('.quill-submit').forEach(function (btn) {
-            btn.addEventListener('click', function (e) {
-                var form = btn.closest('form');
-                var quill = form.querySelector('.ql-editor');
-                if (quill && quill.innerHTML.trim() === '<p><br></p>') {
-                    e.preventDefault();
-                    alert('Please enter a message.');
-                }
-            });
-        });
-    });
+    window.ticketRealtimeConfig = <?= json_encode(array_merge($realtimeConfig, [
+        'threadUrl' => site_url('student/tickets/' . $ticket->id . '/thread'),
+    ]), JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
 </script>
 <?php $this->endSection() ?>

@@ -64,6 +64,13 @@ class AuthController extends BaseController
             ]);
         }
 
+        if (isset($user->is_active) && (int) $user->is_active !== 1) {
+            return view('auth/login', [
+                'validation' => service('validation'),
+                'loginError' => 'This account has been deactivated. Please contact an administrator.',
+            ]);
+        }
+
         $session = session();
         $session->set([
             'isLoggedIn'    => true,

@@ -11,7 +11,9 @@
     },
     "require": {
         "php": "^8.2",
-        "codeigniter4/framework": "^4.7"
+        "cboden/ratchet": "^0.4.4",
+        "codeigniter4/framework": "^4.7",
+        "react/http": "^1.11"
     },
     "require-dev": {
         "fakerphp/faker": "^1.9",

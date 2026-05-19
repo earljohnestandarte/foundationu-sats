@@ -10,6 +10,7 @@ use App\Models\NotificationModel;
 use App\Models\UserModel;
 use App\Models\AttachmentModel;
 use App\Libraries\Mailer;
+use App\Libraries\RealtimePublisher;
 use CodeIgniter\Controller;
 
 
@@ -73,6 +74,55 @@ class TicketController extends BaseController
                 'created_at'    => date('Y-m-d H:i:s'),
             ]);
         }
+    }
+
+    private function getRealtimeBrowserUrl(): string
+    {
+        $config = config('Realtime');
+        if ($config->browserUrl !== '') {
+            return $config->browserUrl;
+        }
+
+        $host = parse_url(base_url(), PHP_URL_HOST) ?: ($this->request->getServer('SERVER_NAME') ?: '127.0.0.1');
+        $scheme = $this->request->isSecure() ? 'wss' : 'ws';
+
+        return $scheme . '://' . $host . ':' . $config->websocketPort;
+    }
+
+    private function getRealtimeConfigForTicket(int $ticketId): array
+    {
+        $publisher = new RealtimePublisher();
+
+        return $publisher->makeSubscriptionData(
+            $ticketId,
+            (int) session()->get('user_id'),
+            (string) session()->get('user_role'),
+            $this->getRealtimeBrowserUrl()
+        );
+    }
+
+    private function getThreadViewData(object $ticket): array
+    {
+        $replies = $this->replyModel
+            ->select('ticket_replies.*, users.name AS author_name, users.role AS author_role')
+            ->join('users', 'users.id = ticket_replies.user_id')
+            ->where('ticket_replies.ticket_id', $ticket->id)
+            ->where('ticket_replies.is_internal', 0)
+            ->orderBy('ticket_replies.created_at', 'ASC')
+            ->findAll();
+
+        $attachmentModel = $this->attachmentModel;
+        foreach ($replies as &$reply) {
+            $reply->attachments = $attachmentModel->getForReply((int) $reply->id);
+        }
+        unset($reply);
+
+        return [
+            'replies'           => buildReplyTree($replies),
+            'ticketAttachments' => $this->attachmentModel->getForTicketLevel($ticket->id),
+            'timeline'          => $this->ticketModel->getTimeline($ticket->id),
+            'feedback'          => $this->feedbackModel->getFeedbackForTicket($ticket->id),
+        ];
     }
 
 
@@ -249,34 +299,35 @@ class TicketController extends BaseController
             return redirect()->to(site_url('student/tickets'))->with('error', 'Concern not found or access denied.');
         }
 
-        $replies = $this->replyModel
-            ->select('ticket_replies.*, users.name AS author_name, users.role AS author_role')
-            ->join('users', 'users.id = ticket_replies.user_id')
-            ->where('ticket_replies.ticket_id', $ticket->id)
-            ->where('ticket_replies.is_internal', 0)  // Students never see internal notes
-            ->orderBy('ticket_replies.created_at', 'ASC')
-            ->findAll();
-
-        // Attach files per reply
-        $attachmentModel = $this->attachmentModel;
-        foreach ($replies as &$reply) {
-            $reply->attachments = $attachmentModel->getForReply((int)$reply->id);
-        }
-        unset($reply);
-
-        $ticketAttachments = $this->attachmentModel->getForTicketLevel($ticket->id);
-
-
-        $replyTree = buildReplyTree($replies);
-        $timeline  = $this->ticketModel->getTimeline($ticket->id);
-        $feedback  = $this->feedbackModel->getFeedbackForTicket($ticket->id);
-
         return view('tickets/view', [
-            'ticket'            => $ticket,
-            'replies'           => $replyTree,
-            'ticketAttachments' => $ticketAttachments,
-            'timeline'          => $timeline,
-            'feedback'          => $feedback,
+            'ticket'          => $ticket,
+            'realtimeConfig' => $this->getRealtimeConfigForTicket((int) $ticket->id),
+            ...$this->getThreadViewData($ticket),
+        ]);
+    }
+
+    public function thread($id)
+    {
+        $ticket = $this->ticketModel->getTicketWithRelations((int) $id);
+
+        if (! $ticket || $ticket->requester_id !== session()->get('user_id')) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Concern not found or access denied.',
+            ])->setStatusCode(403);
+        }
+
+        $viewData = $this->getThreadViewData($ticket);
+
+        return $this->response->setJSON([
+            'success'      => true,
+            'repliesHtml'  => view('tickets/partials/reply_thread', [
+                'ticket'   => $ticket,
+                'replies'  => $viewData['replies'],
+            ]),
+            'timelineHtml' => view('partials/timeline', [
+                'timeline' => $viewData['timeline'],
+            ]),
         ]);
     }
 
@@ -498,6 +549,12 @@ class TicketController extends BaseController
                 'is_read'   => false,
             ]);
         }
+
+        (new RealtimePublisher())->publishReplyCreated(
+            (int) $ticket->id,
+            (int) session()->get('user_id'),
+            'all'
+        );
 
         return redirect()->back()->with('success', 'Reply added successfully.');
     }

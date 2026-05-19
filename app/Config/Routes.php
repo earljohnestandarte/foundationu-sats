@@ -17,6 +17,7 @@ $routes->group('student', ['filter' => ['auth', 'role:student']], function ($rou
     $routes->get('tickets/create', 'TicketController::create');
     $routes->post('tickets/store', 'TicketController::store');
     $routes->get('tickets/(:num)', 'TicketController::view/$1');
+    $routes->get('tickets/(:num)/thread', 'TicketController::thread/$1');
     $routes->post('tickets/(:num)/reply', 'TicketController::addReply/$1');
     $routes->post('tickets/(:num)/confirm', 'TicketController::confirm/$1');
     $routes->post('tickets/(:num)/reopen', 'TicketController::reopen/$1');
@@ -29,6 +30,7 @@ $routes->group('agent', ['filter' => ['auth', 'role:agent,sao,admin']], function
     $routes->get('dashboard', 'AgentController::dashboard');
     $routes->get('archived', 'AgentController::archived');
     $routes->get('view/(:num)', 'AgentController::view/$1');
+    $routes->get('view/(:num)/thread', 'AgentController::thread/$1');
     $routes->post('assign/(:num)', 'AgentController::assign/$1');
     $routes->post('updateStatus/(:num)', 'AgentController::updateStatus/$1');
     $routes->post('addReply/(:num)', 'AgentController::addReply/$1');

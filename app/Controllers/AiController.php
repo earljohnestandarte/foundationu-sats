@@ -10,6 +10,23 @@ class AiController extends BaseController
 {
     protected $helpers = ['url', 'session'];
 
+    private function canAccessTicket(object $ticket, int $userId, string $userRole, ?int $departmentId): bool
+    {
+        if ($userRole === 'student') {
+            return (int) $ticket->requester_id === $userId;
+        }
+
+        if (in_array($userRole, ['sao', 'admin'], true)) {
+            return $departmentId === null || (int) $ticket->department_id === $departmentId;
+        }
+
+        if ($userRole === 'agent') {
+            return $departmentId !== null && (int) $ticket->department_id === $departmentId;
+        }
+
+        return false;
+    }
+
     public function suggest($ticketId)
     {
         $userId = session()->get('user_id');
@@ -19,6 +36,8 @@ class AiController extends BaseController
 
         $userRole = session()->get('user_role') ?? 'student';
         $userName = session()->get('user_name') ?? 'Staff';
+        $departmentId = session()->get('department_id');
+        $departmentId = $departmentId !== null ? (int) $departmentId : null;
 
         $ticketModel = new TicketModel();
         $ticket = $ticketModel->getTicketWithRelations((int) $ticketId);
@@ -27,19 +46,28 @@ class AiController extends BaseController
             return $this->response->setJSON(['error' => 'Concern not found'])->setStatusCode(404);
         }
 
+        if (! $this->canAccessTicket($ticket, (int) $userId, $userRole, $departmentId)) {
+            return $this->response->setJSON(['error' => 'Access denied'])->setStatusCode(403);
+        }
+
         $replyModel = new TicketReplyModel();
-        $replies = $replyModel
+        $replyQuery = $replyModel
             ->select('ticket_replies.message, users.name AS author_name, users.role AS author_role')
             ->join('users', 'users.id = ticket_replies.user_id')
             ->where('ticket_replies.ticket_id', $ticket->id)
-            ->orderBy('ticket_replies.created_at', 'ASC')
-            ->findAll();
+            ->orderBy('ticket_replies.created_at', 'ASC');
+
+        $isStaff = in_array($userRole, ['agent', 'sao', 'admin'], true);
+        if (! $isStaff) {
+            $replyQuery->where('ticket_replies.is_internal', 0);
+        }
+
+        $replies = $replyQuery->findAll();
 
         $currentText = $this->request->getGet('current_text') ?? '';
 
         $roleLabels = ['agent' => 'Agent', 'sao' => 'Administrator', 'admin' => 'Administrator', 'student' => 'Student'];
         $roleLabel = $roleLabels[$userRole] ?? 'Staff';
-        $isStaff = in_array($userRole, ['agent', 'sao', 'admin']);
 
         if ($isStaff) {
             $context = "You are {$userName}, a {$roleLabel} at Foundation University's {$ticket->department_name} department. You are drafting a reply to a student concern.\n\n";

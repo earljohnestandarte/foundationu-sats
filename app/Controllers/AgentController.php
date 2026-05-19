@@ -10,6 +10,7 @@ use App\Models\UserModel;
 use App\Models\NotificationModel;
 use App\Models\AttachmentModel;
 use App\Libraries\Mailer;
+use App\Libraries\RealtimePublisher;
 use CodeIgniter\Controller;
 
 
@@ -88,6 +89,54 @@ class AgentController extends BaseController
         return $userDept !== null && $ticketDepartmentId === (int) $userDept;
     }
 
+    private function getRealtimeBrowserUrl(): string
+    {
+        $config = config('Realtime');
+        if ($config->browserUrl !== '') {
+            return $config->browserUrl;
+        }
+
+        $host = parse_url(base_url(), PHP_URL_HOST) ?: ($this->request->getServer('SERVER_NAME') ?: '127.0.0.1');
+        $scheme = $this->request->isSecure() ? 'wss' : 'ws';
+
+        return $scheme . '://' . $host . ':' . $config->websocketPort;
+    }
+
+    private function getRealtimeConfigForTicket(int $ticketId): array
+    {
+        $publisher = new RealtimePublisher();
+
+        return $publisher->makeSubscriptionData(
+            $ticketId,
+            (int) session()->get('user_id'),
+            (string) session()->get('user_role'),
+            $this->getRealtimeBrowserUrl()
+        );
+    }
+
+    private function getThreadViewData(object $ticket): array
+    {
+        $replies = $this->replyModel
+            ->select('ticket_replies.*, users.name AS author_name, users.role AS author_role')
+            ->join('users', 'users.id = ticket_replies.user_id')
+            ->where('ticket_replies.ticket_id', $ticket->id)
+            ->orderBy('ticket_replies.created_at', 'ASC')
+            ->findAll();
+
+        $attachmentModel = $this->attachmentModel;
+        foreach ($replies as &$reply) {
+            $reply->attachments = $attachmentModel->getForReply((int) $reply->id);
+        }
+        unset($reply);
+
+        return [
+            'replies'           => buildReplyTree($replies),
+            'ticketAttachments' => $this->attachmentModel->getForTicketLevel($ticket->id),
+            'timeline'          => $this->ticketModel->getTimeline($ticket->id),
+            'feedback'          => $this->feedbackModel->getFeedbackForTicket($ticket->id),
+        ];
+    }
+
     public function dashboard()
     {
         $departmentId = session()->get('department_id');
@@ -162,24 +211,6 @@ class AgentController extends BaseController
             return redirect()->to(site_url('agent/dashboard'))->with('error', 'Concern not found or access denied.');
         }
 
-        $replies = $this->replyModel
-            ->select('ticket_replies.*, users.name AS author_name, users.role AS author_role')
-            ->join('users', 'users.id = ticket_replies.user_id')
-            ->where('ticket_replies.ticket_id', $ticket->id)
-            ->orderBy('ticket_replies.created_at', 'ASC')
-            ->findAll();
-
-        // Attach files per reply (agents see all including internal)
-        $attachmentModel = $this->attachmentModel;
-        foreach ($replies as &$reply) {
-            $reply->attachments = $attachmentModel->getForReply((int)$reply->id);
-        }
-        unset($reply);
-
-        $ticketAttachments = $this->attachmentModel->getForTicketLevel($ticket->id);
-
-        $replyTree = buildReplyTree($replies);
-
         if ($this->isElevated()) {
             $agents = $this->userModel->where('role', 'agent')->findAll();
         } else {
@@ -187,17 +218,38 @@ class AgentController extends BaseController
         }
 
         $assignees = $this->ticketModel->getAssigneesForTicket($ticket->id);
-        $timeline  = $this->ticketModel->getTimeline($ticket->id);
-        $feedback  = $this->feedbackModel->getFeedbackForTicket($ticket->id);
 
         return view('agent/ticket_view', [
-            'ticket'            => $ticket,
-            'replies'           => $replyTree,
-            'ticketAttachments' => $ticketAttachments,
-            'agents'            => $agents,
-            'assignees'         => $assignees,
-            'timeline'          => $timeline,
-            'feedback'          => $feedback,
+            'ticket'          => $ticket,
+            'agents'          => $agents,
+            'assignees'       => $assignees,
+            'realtimeConfig' => $this->getRealtimeConfigForTicket((int) $ticket->id),
+            ...$this->getThreadViewData($ticket),
+        ]);
+    }
+
+    public function thread($id)
+    {
+        $ticket = $this->ticketModel->getTicketWithRelations((int) $id);
+
+        if (! $ticket || ! $this->canAccess($ticket->department_id)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Concern not found or access denied.',
+            ])->setStatusCode(403);
+        }
+
+        $viewData = $this->getThreadViewData($ticket);
+
+        return $this->response->setJSON([
+            'success'      => true,
+            'repliesHtml'  => view('agent/partials/reply_thread', [
+                'ticket'  => $ticket,
+                'replies' => $viewData['replies'],
+            ]),
+            'timelineHtml' => view('partials/timeline', [
+                'timeline' => $viewData['timeline'],
+            ]),
         ]);
     }
 
@@ -221,14 +273,22 @@ class AgentController extends BaseController
         }
 
         $resolverId = (int) $this->request->getPost('resolver_id');
+        $newResolver = $this->userModel->find($resolverId);
+
+        if (! $newResolver || $newResolver->role !== 'agent') {
+            return redirect()->back()->with('error', 'Selected resolver is not a valid agent.');
+        }
+
+        if ((int) $newResolver->department_id !== (int) $ticket->department_id) {
+            return redirect()->back()->with('error', 'Selected agent does not belong to this concern\'s department.');
+        }
 
         if ($ticket->resolver_id == $resolverId) {
             return redirect()->to(site_url('agent/view/' . $ticket->id))->with('error', 'This agent is already assigned to this concern.');
         }
 
         if ($resolverId !== $userId && ! $this->isElevated()) {
-            $newResolver = $this->userModel->find($resolverId);
-            if (! $newResolver || $newResolver->role !== 'agent' || $newResolver->department_id !== $departmentId) {
+            if ((int) $newResolver->department_id !== (int) $departmentId) {
                 return redirect()->back()->with('error', 'Selected agent is not valid or belongs to another department.');
             }
         }
@@ -405,8 +465,13 @@ class AgentController extends BaseController
             }
         }
 
+        (new RealtimePublisher())->publishReplyCreated(
+            (int) $ticket->id,
+            (int) session()->get('user_id'),
+            $isInternal ? 'staff' : 'all'
+        );
+
         return redirect()->back()->with('success', $isInternal ? 'Internal note added.' : 'Reply added successfully.');
     }
 
 }
-

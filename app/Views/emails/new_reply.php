@@ -10,7 +10,7 @@ ob_start();
   <div class="subject"><?= esc($ticket->subject) ?></div>
 </div>
 <div class="reply-box">
-  <?= nl2br(esc(strip_tags($reply->body))) ?>
+  <?= nl2br(esc(strip_tags($reply->message ?? $reply->body ?? ''))) ?>
 </div>
 <a href="<?= $baseUrl ?>/student/tickets/<?= $ticket->id ?>" class="btn">View Full Conversation →</a>
 <?php $emailContent = ob_get_clean(); ?>

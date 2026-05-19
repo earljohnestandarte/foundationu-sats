@@ -54,18 +54,43 @@ class AttachmentModel extends Model
     public function userCanAccess(int $attachmentId, int $userId, string $role): bool
     {
         $attachment = $this->find($attachmentId);
-        if (!$attachment) return false;
+        if (! $attachment) {
+            return false;
+        }
 
-        if (in_array($role, ['agent', 'sao', 'admin'])) return true;
-
-        // Student can only access attachments on their own tickets
-        $db     = \Config\Database::connect();
+        $db = \Config\Database::connect();
+        $user = $db->table('users')
+            ->select('department_id')
+            ->where('id', $userId)
+            ->get()
+            ->getRow();
         $ticket = $db->table('tickets')
-            ->where('id', $attachment['ticket_id'])
-            ->where('requester_id', $userId)
-            ->get()->getRow();
+            ->select('id, requester_id, department_id')
+            ->where('tickets.id', $attachment['ticket_id'])
+            ->get()
+            ->getRow();
 
-        return $ticket !== null;
+        if (! $ticket) {
+            return false;
+        }
+
+        if ($role === 'student') {
+            return (int) $ticket->requester_id === $userId;
+        }
+
+        if ($role === 'agent') {
+            return $user !== null
+                && $user->department_id !== null
+                && (int) $ticket->department_id === (int) $user->department_id;
+        }
+
+        if (in_array($role, ['sao', 'admin'], true)) {
+            return $user === null
+                || $user->department_id === null
+                || (int) $ticket->department_id === (int) $user->department_id;
+        }
+
+        return false;
     }
 
     /** Detect if the file is an image (for inline preview) */

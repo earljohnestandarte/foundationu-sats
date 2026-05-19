@@ -418,6 +418,13 @@ class ManagementController extends BaseController
             return redirect()->back()->with('error', 'Template not found.');
         }
 
+        if (! $this->isAdmin()) {
+            $departmentId = session()->get('department_id');
+            if ($departmentId === null || (int) $template->department_id !== (int) $departmentId) {
+                return redirect()->back()->with('error', 'You do not have permission to delete this template.');
+            }
+        }
+
         $this->templateModel->delete($template->id);
         return redirect()->to(site_url('sao/templates'))->with('success', 'Template deleted.');
     }
