@@ -17,6 +17,7 @@ Inspired by modern SaaS platforms like Freshdesk, the system features a clean, s
 ### For Students
 - **Seamless Ticket Submission** — Submit concerns with priority levels, concern types, and department routing.
 - **Real-time Tracking** — Monitor ticket status (Open, In Progress, Pending, Resolved, Closed, Archived).
+- **Live Thread Updates** — New ticket replies appear in the conversation thread without a manual page refresh when the realtime server is running.
 - **Threaded Conversations** — Communicate directly with assigned agents through ticket replies with a rich-text editor (Quill.js).
 - **Escalation Requests** — Request escalation when a concern needs higher-level attention.
 - **CSAT Feedback** — Rate resolved tickets to help measure service quality.
@@ -30,6 +31,7 @@ Inspired by modern SaaS platforms like Freshdesk, the system features a clean, s
 - **AI-Powered Suggestions** — Generate AI-assisted draft replies based on ticket context and agent role.
 - **SLA Tracking** — Monitor response and resolution times against service-level agreements.
 - **In-App Notifications** — Notification bell alerts agents to new tickets, replies, and status changes.
+- **Realtime Ticket Conversations** — Agents receive live conversation thread updates for ticket replies while viewing a ticket.
 
 ### For SAO (Student Affairs Office)
 - **Organization-Wide Dashboard** — View all escalated concerns across every department.
@@ -62,6 +64,7 @@ Inspired by modern SaaS platforms like Freshdesk, the system features a clean, s
 - **Backend Framework:** PHP / CodeIgniter 4 (Strict MVC Architecture)
 - **Frontend:** Bootstrap 5, jQuery, Quill.js rich-text editor, custom CSS variables
 - **Database:** MySQL / MariaDB
+- **Realtime:** Ratchet WebSockets + ReactPHP HTTP server for live ticket thread updates
 - **AI Integration:** OpenAI-compatible chat completions API (configurable provider)
 - **Architecture:** Lean controllers, fat models, CI4 route filters, query builder, and native session handling
 
@@ -96,6 +99,24 @@ AI_MODEL = gpt-4o
 ```
 
 See `.env.example` for all available settings.
+
+### Realtime Replies (`.env`)
+
+Live ticket thread updates use a separate realtime server process. Configure these in your `.env` file:
+
+```env
+realtime.websocketHost = 0.0.0.0
+realtime.websocketPort = 8080
+realtime.publishHost = 127.0.0.1
+realtime.publishPort = 8081
+realtime.secret = change-this-in-production
+realtime.browserUrl = ws://127.0.0.1:8080
+```
+
+Notes:
+- `realtime.secret` should be changed to a strong private value.
+- `realtime.browserUrl` must match the URL the browser can actually reach, such as `ws://127.0.0.1:8080` for local HTTP development or `wss://your-domain:port` for HTTPS deployments.
+- The internal publish endpoint is used by the app, not by browsers directly.
 
 ---
 
@@ -140,6 +161,19 @@ The frontend adheres strictly to a clean, minimalist SaaS design pattern:
    php spark serve
    ```
    The application will be available at `http://localhost:8080`.
+
+6. **Start the Realtime Server**
+   ```bash
+   php spark realtime:serve
+   ```
+   Keep this process running alongside `php spark serve` if you want live ticket reply updates in the conversation thread.
+
+### Realtime Notes
+
+- Live reply updates require both the main app server and the realtime server to be running.
+- The browser should connect using the `realtime.browserUrl` value from `.env`, not the websocket bind address `0.0.0.0`.
+- Opening the internal publish endpoint in a browser may return `{"success":false}` on a normal `GET` request. That is expected because the endpoint only accepts authenticated `POST` requests from the app.
+- The ticket conversation thread updates in realtime. The notification bell can still remain non-realtime depending on the page and flow.
 
 ### Default Seed Accounts
 
