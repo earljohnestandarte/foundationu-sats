@@ -39,6 +39,20 @@
         return PRIORITY_COLOURS[value] || STATUS_COLOURS[value] || null;
     }
 
+    function isPlaceholderOption(nativeSelect, option) {
+        if (!option) {
+            return true;
+        }
+
+        // Some selects use an empty value as a valid "All" filter state,
+        // so allow the page to opt out of placeholder styling explicitly.
+        if (nativeSelect.dataset.fuPlaceholder === 'false') {
+            return false;
+        }
+
+        return option.value === '' || option.value === null;
+    }
+
     /* ── Build SVG chevron ──────────────────────────────────── */
     function chevronSVG() {
         return `<svg class="fu-select-chevron" viewBox="0 0 24 24" fill="none"
@@ -166,7 +180,7 @@
                         list.appendChild(buildOption(opt, false));
                     });
                 } else {
-                    const isPlaceholder = child.value === '' || child.value === null;
+                    const isPlaceholder = isPlaceholderOption(native, child);
                     list.appendChild(buildOption(child, isPlaceholder));
                 }
             });
@@ -176,7 +190,7 @@
         _syncValue() {
             const native   = this.native;
             const selected = native.options[native.selectedIndex];
-            const isEmpty  = !selected || selected.value === '';
+            const isEmpty  = isPlaceholderOption(native, selected);
             this.valueSpan.textContent  = selected ? selected.text : '—';
             this.valueSpan.classList.toggle('placeholder', isEmpty);
 

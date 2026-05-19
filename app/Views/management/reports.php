@@ -1,25 +1,40 @@
 <?= $this->extend('layout/main') ?>
 <?php $this->section('title') ?>Reports - SATS<?php $this->endSection() ?>
 <?php $this->section('activeNav') ?>reports<?php $this->endSection() ?>
+<?php $this->section('css') ?>
+<style>
+    .reports-filter-card,
+    .reports-filter-card .p-4,
+    .reports-filter-card form,
+    .reports-filter-card .filter-field {
+        overflow: visible;
+    }
+
+    .reports-filter-card .filter-field {
+        position: relative;
+        z-index: 2;
+    }
+</style>
+<?php $this->endSection() ?>
 <?php $this->section('content') ?>
 <section class="section-padding">
     <h3 class="fw-bold mb-1" style="color: var(--fu-primary); font-size: 28px;">Reports</h3>
     <p style="color: var(--fu-on-surface-variant);">View response times and resolution metrics.</p>
 
-    <div class="card-fu mb-4">
+    <div class="card-fu mb-4 reports-filter-card">
         <div class="p-4">
             <form method="get" action="<?= site_url('sao/reports') ?>" class="row g-3">
-                <div class="col-md-3">
+                <div class="col-md-3 filter-field">
                     <label class="form-label fw-semibold">From</label>
                     <input type="date" name="from" class="form-control" value="<?= esc($from) ?>">
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-3 filter-field">
                     <label class="form-label fw-semibold">To</label>
                     <input type="date" name="to" class="form-control" value="<?= esc($to) ?>">
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-3 filter-field">
                     <label class="form-label fw-semibold">Department</label>
-                    <select name="department_id" class="form-select">
+                    <select name="department_id" class="form-select" data-fu-placeholder="false">
                         <option value="">All Departments</option>
                         <?php foreach ($departments as $d): ?>
                         <option value="<?= $d->id ?>" <?= $departmentFilter == $d->id ? 'selected' : '' ?>><?= esc($d->name) ?></option>
